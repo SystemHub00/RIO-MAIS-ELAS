@@ -627,7 +627,7 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             </div>
             <div class="form-btns" style="display:flex; flex-direction:column !important; gap:12px; width:100%; margin-top:24px;">
                 <button type="submit" class="btn-proximo">PRÓXIMO &rarr;</button>
-                <button type="button" class="btn-voltar" onclick="window.location.href='/endereco'">&lt; VOLTAR</button>
+                <button type="button" class="btn-voltar" onclick="window.location.href='/inscricao'">&lt; VOLTAR</button>
             </div>
         </form>
     </div>
