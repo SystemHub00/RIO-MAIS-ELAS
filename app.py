@@ -591,18 +591,24 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                     <option value="ACREDITA">ASSOCIAÇÃO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA</option>
                     <option value="ERNESTO_LOBAO">ERNESTO LOBÃO - MADUREIRA</option>
                 </select>
+                <!-- Campo oculto para o nome legível do local -->
+                <input type="hidden" id="local_nome_legivel" name="local_nome_legivel" value="" />
             </div>
             <div class="form-group">
                 <label for="curso">Curso *</label>
                 <select id="curso" name="curso" required>
                     <option value="">Selecione o curso</option>
                 </select>
+                <!-- Campo oculto para o nome legível do curso -->
+                <input type="hidden" id="curso_nome_legivel" name="curso_nome_legivel" value="" />
             </div>
             <div class="form-group">
                 <label for="turma">Turma *</label>
                 <select id="turma" name="turma" required>
                     <option value="">Selecione a turma</option>
                 </select>
+                <!-- Campo oculto para o nome legível da turma -->
+                <input type="hidden" id="turma_nome_legivel" name="turma_nome_legivel" value="" />
             </div>
             <div class="form-group">
                 <label for="horario">Dia/Horário</label>
@@ -735,7 +741,11 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
     localSelect.addEventListener('change', function() {
         resetCursos();
         const local = this.value;
+        // Atualiza campo oculto com o nome legível do local
+        const localNomeLegivelInput = document.getElementById('local_nome_legivel');
+        let localNomeLegivel = '';
         if (local && cursosData[local]) {
+            localNomeLegivel = cursosData[local].nome;
             cursosData[local].cursos.forEach(function(curso) {
                 const opt = document.createElement('option');
                 opt.value = curso.id;
@@ -743,15 +753,20 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                 cursoSelect.appendChild(opt);
             });
         }
+        if (localNomeLegivelInput) localNomeLegivelInput.value = localNomeLegivel;
     });
 
     cursoSelect.addEventListener('change', function() {
         resetCampos();
         const local = localSelect.value;
         const cursoId = this.value;
+        // Atualiza campo oculto com o nome legível do curso
+        const cursoNomeLegivelInput = document.getElementById('curso_nome_legivel');
+        let cursoNomeLegivel = '';
         if (local && cursoId && cursosData[local]) {
             const curso = cursosData[local].cursos.find(c => c.id === cursoId);
             if (curso) {
+                cursoNomeLegivel = curso.nome;
                 curso.turmas.forEach(function(turma) {
                     const opt = document.createElement('option');
                     opt.value = turma.id;
@@ -760,12 +775,16 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                 });
             }
         }
+        if (cursoNomeLegivelInput) cursoNomeLegivelInput.value = cursoNomeLegivel;
     });
 
     turmaSelect.addEventListener('change', function() {
         const local = localSelect.value;
         const cursoId = cursoSelect.value;
         const turmaId = this.value;
+        // Atualiza campo oculto com o nome legível da turma
+        const turmaNomeLegivelInput = document.getElementById('turma_nome_legivel');
+        let turmaNomeLegivel = '';
         if (local && cursoId && turmaId && cursosData[local]) {
             const curso = cursosData[local].cursos.find(c => c.id === cursoId);
             if (curso) {
@@ -775,9 +794,11 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                     dataInicioInput.value = turma.data_inicio;
                     encerramentoInput.value = turma.encerramento;
                     enderecoInput.value = turma.endereco;
+                    turmaNomeLegivel = turma.nome;
                 }
             }
         }
+        if (turmaNomeLegivelInput) turmaNomeLegivelInput.value = turmaNomeLegivel;
     });
 
     if (btnCopiarEndereco && enderecoInput) {
@@ -1758,41 +1779,48 @@ def inscricao():
 @app.route('/curso', methods=['GET', 'POST'])
 def curso():
     if request.method == 'POST':
-        session['local'] = request.form.get('local')
-        session['curso'] = request.form.get('curso')
-        session['turma'] = request.form.get('turma')
-        session['horario'] = request.form.get('horario')
-        session['data_inicio'] = request.form.get('data_inicio')
-        session['encerramento'] = request.form.get('encerramento')
-        session['endereco_curso'] = request.form.get('endereco')
+        # Padronizar e garantir que todos os campos estejam corretos
+        session['local'] = request.form.get('local', '').strip()
+        session['curso'] = request.form.get('curso', '').strip()
+        session['turma'] = request.form.get('turma', '').strip()
+        session['horario'] = request.form.get('horario', '').strip()
+        session['data_inicio'] = request.form.get('data_inicio', '').strip()
+        session['encerramento'] = request.form.get('encerramento', '').strip()
+        session['endereco_curso'] = request.form.get('endereco', '').strip()
 
-        # Salvar o nome legível da turma na sessão
-        turma_nome = None
-        try:
-            local_id = session.get('local')
-            curso_id = session.get('curso')
-            turma_id = session.get('turma')
-            # Importar o dicionário de cursos do template (simples eval seguro)
-            import ast
-            import re
-            match = re.search(r'cursosData\s*=\s*({.*?});', TEMPLATE_CURSO, re.DOTALL)
-            if match:
-                cursosData_str = match.group(1)
-                cursosData = ast.literal_eval(cursosData_str.replace('null', 'None'))
-                if local_id and curso_id and turma_id:
-                    curso_list = cursosData.get(local_id, {}).get('cursos', [])
-                    for curso in curso_list:
-                        if curso.get('id') == curso_id:
-                            for turma in curso.get('turmas', []):
-                                if turma.get('id') == turma_id:
-                                    turma_nome = turma.get('nome')
-                                    break
-        except Exception:
-            turma_nome = None
-        if turma_nome:
-            session['turma_nome_legivel'] = turma_nome
-        else:
-            session['turma_nome_legivel'] = session.get('turma')
+        # NOVO: Salvar os nomes legíveis de local, curso e turma diretamente do formulário, se enviados
+        local_nome_legivel = request.form.get('local_nome_legivel', '').strip()
+        curso_nome_legivel = request.form.get('curso_nome_legivel', '').strip()
+        turma_nome_legivel = request.form.get('turma_nome_legivel', '').strip()
+
+        # fallback para dicionário backend se não vier do form
+        if not local_nome_legivel or not curso_nome_legivel or not turma_nome_legivel:
+            try:
+                import ast
+                import re
+                local_id = session.get('local')
+                curso_id = session.get('curso')
+                turma_id = session.get('turma')
+                match = re.search(r'cursosData\s*=\s*({.*?});', TEMPLATE_CURSO, re.DOTALL)
+                if match:
+                    cursosData_str = match.group(1)
+                    cursosData = ast.literal_eval(cursosData_str.replace('null', 'None'))
+                    if local_id and cursosData.get(local_id):
+                        if not local_nome_legivel:
+                            local_nome_legivel = cursosData[local_id].get('nome', local_id)
+                        curso_list = cursosData[local_id].get('cursos', [])
+                        curso_obj = next((c for c in curso_list if c.get('id') == curso_id), None)
+                        if curso_obj:
+                            if not curso_nome_legivel:
+                                curso_nome_legivel = curso_obj.get('nome', curso_id)
+                            turma_obj = next((t for t in curso_obj.get('turmas', []) if t.get('id') == turma_id), None)
+                            if turma_obj and not turma_nome_legivel:
+                                turma_nome_legivel = turma_obj.get('nome', turma_id)
+            except Exception as e:
+                print('Erro ao buscar nomes legíveis:', e)
+        session['local_nome_legivel'] = local_nome_legivel or session.get('local', '')
+        session['curso_nome_legivel'] = curso_nome_legivel or session.get('curso', '')
+        session['turma_nome_legivel'] = turma_nome_legivel or session.get('turma', '')
 
         return redirect(url_for('revisao'))
     return render_template_string(TEMPLATE_CURSO)
@@ -1811,22 +1839,22 @@ def confirmacao():
     session['protocolo'] = protocolo
     dados = [
         protocolo,
-        session.get('nome',''),
-        session.get('genero',''),
-        session.get('cpf',''),
-        session.get('nascimento',''),
-        session.get('whatsapp',''),
-        session.get('email',''),
-        session.get('cep',''),
-        session.get('bairro',''),
-        session.get('local',''),
-        session.get('curso',''),
-        session.get('turma_nome_legivel', session.get('turma','')),
-        session.get('horario',''),
-        session.get('data_inicio',''),
-        session.get('encerramento',''),
-        session.get('endereco_curso',''),
-        session.get('como_conheceu',''),
+        session.get('nome', ''),
+        session.get('genero', ''),
+        session.get('cpf', ''),
+        session.get('nascimento', ''),
+        session.get('whatsapp', ''),
+        session.get('email', ''),
+        session.get('cep', ''),
+        session.get('bairro', ''),
+        session.get('local', ''),
+        session.get('curso', ''),
+        session.get('turma_nome_legivel', ''),  # Sempre o nome legível
+        session.get('horario', ''),
+        session.get('data_inicio', ''),
+        session.get('encerramento', ''),
+        session.get('endereco_curso', ''),
+        session.get('como_conheceu', ''),
     ]
     # O campo data_envio será adicionado por append_to_sheet
     try:
@@ -1845,13 +1873,15 @@ def confirmacao():
             "x-api-key": "jyUskwXkc54ZcMPyADLFN6LvZO0I60e3"
         }
         supabase_payload = {
-            "name": session.get('nome',''),
-            "phone": session.get('whatsapp','').replace('(','').replace(')','').replace('-','').replace(' ','').replace('+',''),
-            "curso": session.get('curso',''),
-            "local": session.get('local',''),
-            "dia_semana": session.get('turma_nome_legivel', session.get('turma','')),
-            "data_inicio": session.get('data_inicio',''),
-            "horario": session.get('horario',''),
+            "name": session.get('nome', ''),
+            "phone": session.get('whatsapp', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', '').replace('+', ''),
+            "curso": session.get('curso_nome_legivel', session.get('curso', '')),
+            "local": session.get('local_nome_legivel', session.get('local', '')),
+            "turma": session.get('turma_nome_legivel', session.get('turma', '')),
+            "data_inicio": session.get('data_inicio', ''),
+            "horario": session.get('horario', ''),
+            "encerramento": session.get('encerramento', ''),
+            "endereco_curso": session.get('endereco_curso', ''),
             "data_inscricao": datetime.utcnow().isoformat() + 'Z'
         }
         requests.post(supabase_url, headers=supabase_headers, json=supabase_payload, timeout=5)
