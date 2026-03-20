@@ -457,10 +457,10 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <div class="info-box">
                 <div class="info-title">&#127891; Curso Escolhido</div>
                 <div class="info-content">
-                    <span style="color:#351c75;">Ritmo:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
+                    <span style="color:#351c75;">Curso:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
                     <span style="color:#351c75;">Local:</span> <span style="color:#222; font-weight:500;">{{ dados.get('local', '') }}</span><br>
-                    <span style="color:#351c75;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma', '') }}</span><br>
-                    <span style="color:#351c75;">Horário:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
+                    <span style="color:#351c75;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma_nome_legivel', dados.get('turma', '')) }}</span><br>
+                    <span style="color:#351c75;">Dias e Horários:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
                     <span style="color:#351c75;">Data de Início:</span> <span style="color:#222; font-weight:500;">{{ dados.get('data_inicio', '') }}</span><br>
                     <span style="color:#351c75;">Encerramento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
                     <span style="color:#351c75;">Endereço:</span> <span style="color:#222; font-weight:500;">{{ dados.get('endereco_curso', '') }}</span>
@@ -1765,6 +1765,35 @@ def curso():
         session['data_inicio'] = request.form.get('data_inicio')
         session['encerramento'] = request.form.get('encerramento')
         session['endereco_curso'] = request.form.get('endereco')
+
+        # Salvar o nome legível da turma na sessão
+        turma_nome = None
+        try:
+            local_id = session.get('local')
+            curso_id = session.get('curso')
+            turma_id = session.get('turma')
+            # Importar o dicionário de cursos do template (simples eval seguro)
+            import ast
+            import re
+            match = re.search(r'cursosData\s*=\s*({.*?});', TEMPLATE_CURSO, re.DOTALL)
+            if match:
+                cursosData_str = match.group(1)
+                cursosData = ast.literal_eval(cursosData_str.replace('null', 'None'))
+                if local_id and curso_id and turma_id:
+                    curso_list = cursosData.get(local_id, {}).get('cursos', [])
+                    for curso in curso_list:
+                        if curso.get('id') == curso_id:
+                            for turma in curso.get('turmas', []):
+                                if turma.get('id') == turma_id:
+                                    turma_nome = turma.get('nome')
+                                    break
+        except Exception:
+            turma_nome = None
+        if turma_nome:
+            session['turma_nome_legivel'] = turma_nome
+        else:
+            session['turma_nome_legivel'] = session.get('turma')
+
         return redirect(url_for('revisao'))
     return render_template_string(TEMPLATE_CURSO)
 
@@ -1792,7 +1821,7 @@ def confirmacao():
         session.get('bairro',''),
         session.get('local',''),
         session.get('curso',''),
-        session.get('turma',''),
+        session.get('turma_nome_legivel', session.get('turma','')),
         session.get('horario',''),
         session.get('data_inicio',''),
         session.get('encerramento',''),
@@ -1820,7 +1849,7 @@ def confirmacao():
             "phone": session.get('whatsapp','').replace('(','').replace(')','').replace('-','').replace(' ','').replace('+',''),
             "curso": session.get('curso',''),
             "local": session.get('local',''),
-            "dia_semana": session.get('turma',''),
+            "dia_semana": session.get('turma_nome_legivel', session.get('turma','')),
             "data_inicio": session.get('data_inicio',''),
             "horario": session.get('horario',''),
             "data_inscricao": datetime.utcnow().isoformat() + 'Z'
