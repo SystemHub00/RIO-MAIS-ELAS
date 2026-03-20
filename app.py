@@ -1805,6 +1805,30 @@ def confirmacao():
     except Exception as e:
         print('Erro ao salvar na planilha:', e)
         traceback.print_exc()
+
+    # Envia os dados para o endpoint Supabase
+    import requests
+    from datetime import datetime
+    try:
+        supabase_url = "https://egpyhfzatabyftwajoad.supabase.co/functions/v1/fgm-register"
+        supabase_headers = {
+            "Content-Type": "application/json",
+            "x-api-key": "jyUskwXkc54ZcMPyADLFN6LvZO0I60e3"
+        }
+        supabase_payload = {
+            "name": session.get('nome',''),
+            "phone": session.get('whatsapp','').replace('(','').replace(')','').replace('-','').replace(' ','').replace('+',''),
+            "curso": session.get('curso',''),
+            "local": session.get('local',''),
+            "dia_semana": session.get('turma',''),
+            "data_inicio": session.get('data_inicio',''),
+            "horario": session.get('horario',''),
+            "data_inscricao": datetime.utcnow().isoformat() + 'Z'
+        }
+        requests.post(supabase_url, headers=supabase_headers, json=supabase_payload, timeout=5)
+    except Exception as e:
+        print('Erro ao enviar para Supabase:', e)
+
     return render_template_string(TEMPLATE_CONFIRMACAO, protocolo=protocolo)
 
 
