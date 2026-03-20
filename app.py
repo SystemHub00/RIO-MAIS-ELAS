@@ -459,10 +459,10 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                 <div class="info-content">
                     <span style="color:#351c75;">Ritmo:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
                     <span style="color:#351c75;">Local:</span> <span style="color:#222; font-weight:500;">{{ dados.get('local', '') }}</span><br>
-                    <span style="color:#351c75;">Evento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma', '') }}</span><br>
+                    <span style="color:#351c75;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma', '') }}</span><br>
                     <span style="color:#351c75;">Horário:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
                     <span style="color:#351c75;">Data de Início:</span> <span style="color:#222; font-weight:500;">{{ dados.get('data_inicio', '') }}</span><br>
-                    <span style="color:#351c75;">Aviso:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
+                    <span style="color:#351c75;">Encerramento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
                     <span style="color:#351c75;">Endereço:</span> <span style="color:#222; font-weight:500;">{{ dados.get('endereco_curso', '') }}</span>
                 </div>
             </div>
@@ -584,37 +584,42 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <div class="form-group">
                 <label for="local">Local *</label>
                 <select id="local" name="local" required>
-                    <option value="ILHA DO GOVERNADOR">ILHA DO GOVERNADOR</option>
+                    <option value="">Selecione o local</option>
+                    <option value="AMORIM">INSTITUIÇÃO ORIGEM AMORIM - MANGUINHOS</option>
+                    <option value="COSTA_MATOS">COZINHA COSTA MATOS - REALENGO</option>
+                    <option value="ESCOLHA_CERTA">COZINHA ESCOLHA CERTA - VILA VINTÉM - PADRE MIGUEL</option>
+                    <option value="ACREDITA">ASSOCIAÇÃO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA</option>
+                    <option value="ERNESTO_LOBAO">ERNESTO LOBÃO - MADUREIRA</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="curso">Ritmo *</label>
+                <label for="curso">Curso *</label>
                 <select id="curso" name="curso" required>
-                    <option value="FORRÓ, GAFIEIRA E SAMBA NO PÉ">FORRÓ, GAFIEIRA E SAMBA NO PÉ</option>
+                    <option value="">Selecione o curso</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="turma">Evento *</label>
+                <label for="turma">Turma *</label>
                 <select id="turma" name="turma" required>
-                    <option value="ANFITEATRO ATERRO DO COCOTÁ">ANFITEATRO ATERRO DO COCOTÁ</option>
+                    <option value="">Selecione a turma</option>
                 </select>
             </div>
             <div class="form-group">
                 <label for="horario">Dia/Horário</label>
-                <input type="text" id="horario" name="horario" value="Domingo | 17h" readonly />
+                <input type="text" id="horario" name="horario" readonly />
             </div>
             <div class="form-group">
                 <label for="data_inicio">Data de Início</label>
-                <input type="text" id="data_inicio" name="data_inicio" value="22/03/2026" readonly />
+                <input type="text" id="data_inicio" name="data_inicio" readonly />
             </div>
             <div class="form-group">
-                <label for="encerramento">Aviso</label>
-                <input type="text" id="encerramento" name="encerramento" value="⚠️Em caso de chuva pode ser cancelado" readonly />
+                <label for="encerramento">Encerramento</label>
+                <input type="text" id="encerramento" name="encerramento" readonly />
             </div>
             <div class="form-group">
                 <label for="endereco">Endereço</label>
                 <div style="display:flex;align-items:center;gap:8px;width:100%;max-width:380px;">
-                    <input type="text" id="endereco" name="endereco" value="📍Parque Poeta Manuel Bandeira, s/n, Aterro do Cocotá, Ilha do Governador, RJ. (ANFITEATRO)" readonly style="flex:1;min-width:0;" />
+                    <input type="text" id="endereco" name="endereco" readonly style="flex:1;min-width:0;" />
                     <button type="button" id="btn-copiar-endereco" title="Copiar endereço" style="padding:6px 10px;border-radius:6px;border:none;background:#351c75;color:#fff;cursor:pointer;font-size:1em;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;">
                         <span style="font-size:1.1em;">&#128203;</span>
                     </button>
@@ -627,9 +632,153 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         </form>
     </div>
     <script>
-    // Não é necessário JS dinâmico pois só há uma opção fixa para cada campo
+    // Estrutura de dados dos cursos, turmas, horários, datas, endereços
+    const cursosData = {
+        AMORIM: {
+            nome: 'INSTITUIÇÃO ORIGEM AMORIM - MANGUINHOS',
+            cursos: [{
+                id: 'SOBRANCELHAS',
+                nome: 'DESIGNER DE SOBRANCELHAS',
+                turmas: [{
+                    id: 'T1',
+                    nome: 'DESIGNER DE SOBRANCELHAS - TURMA 01',
+                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
+                    data_inicio: '13/04/2026',
+                    encerramento: '15/04/2026',
+                    endereco: 'Rua Castro Tavares, 156 - Manguinhos RJ'
+                }]
+            }]
+        },
+        COSTA_MATOS: {
+            nome: 'COZINHA COSTA MATOS - REALENGO',
+            cursos: [{
+                id: 'NAILS1',
+                nome: 'NAILS DESIGNER',
+                turmas: [{
+                    id: 'T2',
+                    nome: 'NAILS DESIGNER - TURMA 01',
+                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
+                    data_inicio: '13/04/2026',
+                    encerramento: '15/04/2026',
+                    endereco: 'Rua Capitão Teixeira, 583 - Realengo RJ'
+                }]
+            }]
+        },
+        ESCOLHA_CERTA: {
+            nome: 'COZINHA ESCOLHA CERTA - VILA VINTÉM - PADRE MIGUEL',
+            cursos: [{
+                id: 'CILIOS',
+                nome: 'EXTENSÃO DE CÍLIOS',
+                turmas: [{
+                    id: 'T3',
+                    nome: 'EXTENSÃO DE CÍLIOS - TURMA 03',
+                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
+                    data_inicio: '13/04/2026',
+                    encerramento: '15/04/2026',
+                    endereco: 'Travessa Santa Terezinha, 03 - Padre Miguel RJ'
+                }]
+            }]
+        },
+        ACREDITA: {
+            nome: 'ASSOCIAÇÃO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA',
+            cursos: [{
+                id: 'NAILS2',
+                nome: 'NAILS DESIGNER',
+                turmas: [{
+                    id: 'T4',
+                    nome: 'NAILS DESIGNER - TURMA 01',
+                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
+                    data_inicio: '27/04/2026',
+                    encerramento: '29/04/2026',
+                    endereco: 'Rua Padre Manso, 32 - Madureira RJ'
+                }]
+            }]
+        },
+        ERNESTO_LOBAO: {
+            nome: 'ERNESTO LOBÃO - MADUREIRA',
+            cursos: [{
+                id: 'TRANCISTA',
+                nome: 'TRANCISTA',
+                turmas: [{
+                    id: 'T5',
+                    nome: 'TRANCISTA - TURMA 03',
+                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
+                    data_inicio: '27/04/2026',
+                    encerramento: '29/04/2026',
+                    endereco: 'Rua Ernesto Lobão n* 19, Madureira RJ'
+                }]
+            }]
+        }
+    };
+
+    const localSelect = document.getElementById('local');
+    const cursoSelect = document.getElementById('curso');
+    const turmaSelect = document.getElementById('turma');
+    const horarioInput = document.getElementById('horario');
+    const dataInicioInput = document.getElementById('data_inicio');
+    const encerramentoInput = document.getElementById('encerramento');
     const enderecoInput = document.getElementById('endereco');
     const btnCopiarEndereco = document.getElementById('btn-copiar-endereco');
+
+    function resetCursos() {
+        cursoSelect.innerHTML = '<option value="">Selecione o curso</option>';
+        resetCampos();
+    }
+    function resetCampos() {
+        turmaSelect.innerHTML = '<option value="">Selecione a turma</option>';
+        horarioInput.value = '';
+        dataInicioInput.value = '';
+        encerramentoInput.value = '';
+        enderecoInput.value = '';
+    }
+
+    localSelect.addEventListener('change', function() {
+        resetCursos();
+        const local = this.value;
+        if (local && cursosData[local]) {
+            cursosData[local].cursos.forEach(function(curso) {
+                const opt = document.createElement('option');
+                opt.value = curso.id;
+                opt.textContent = curso.nome;
+                cursoSelect.appendChild(opt);
+            });
+        }
+    });
+
+    cursoSelect.addEventListener('change', function() {
+        resetCampos();
+        const local = localSelect.value;
+        const cursoId = this.value;
+        if (local && cursoId && cursosData[local]) {
+            const curso = cursosData[local].cursos.find(c => c.id === cursoId);
+            if (curso) {
+                curso.turmas.forEach(function(turma) {
+                    const opt = document.createElement('option');
+                    opt.value = turma.id;
+                    opt.textContent = turma.nome;
+                    turmaSelect.appendChild(opt);
+                });
+            }
+        }
+    });
+
+    turmaSelect.addEventListener('change', function() {
+        const local = localSelect.value;
+        const cursoId = cursoSelect.value;
+        const turmaId = this.value;
+        if (local && cursoId && turmaId && cursosData[local]) {
+            const curso = cursosData[local].cursos.find(c => c.id === cursoId);
+            if (curso) {
+                const turma = curso.turmas.find(t => t.id === turmaId);
+                if (turma) {
+                    horarioInput.value = turma.horario;
+                    dataInicioInput.value = turma.data_inicio;
+                    encerramentoInput.value = turma.encerramento;
+                    enderecoInput.value = turma.endereco;
+                }
+            }
+        }
+    });
 
     if (btnCopiarEndereco && enderecoInput) {
         btnCopiarEndereco.addEventListener('click', function() {
@@ -649,66 +798,6 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             }
         });
     }
-
-    function resetCursos() {
-        cursoSelect.innerHTML = '<option value="">Selecione o curso</option>';
-        resetCampos();
-    }
-
-    function resetCampos() {
-        turmaSelect.innerHTML = '<option value="">Selecione a turma</option>';
-        horarioInput.value = '';
-        dataInicioInput.value = '';
-        encerramentoInput.value = '';
-        enderecoInput.value = '';
-    }
-
-    localSelect.addEventListener('change', function() {
-        resetCursos();
-        const local = this.value;
-        if (cursosPorLocal[local]) {
-            cursosPorLocal[local].forEach(function(curso) {
-                const opt = document.createElement('option');
-                opt.value = curso;
-                opt.textContent = curso;
-                cursoSelect.appendChild(opt);
-            });
-        }
-    });
-
-    cursoSelect.addEventListener('change', function() {
-        resetCampos();
-        const local = localSelect.value;
-        const curso = this.value;
-        if (turmasData[local] && turmasData[local][curso]) {
-            turmasData[local][curso].forEach(function(turmaObj) {
-                const opt = document.createElement('option');
-                opt.value = turmaObj.turma;
-                opt.textContent = turmaObj.turma;
-                turmaSelect.appendChild(opt);
-            });
-        }
-    });
-
-    turmaSelect.addEventListener('change', function() {
-        const local = localSelect.value;
-        const curso = cursoSelect.value;
-        const turma = this.value;
-        if (turmasData[local] && turmasData[local][curso]) {
-            const turmaObj = turmasData[local][curso].find(t => t.turma === turma);
-            if (turmaObj) {
-                horarioInput.value = turmaObj.horario;
-                dataInicioInput.value = turmaObj.data_inicio;
-                encerramentoInput.value = turmaObj.encerramento;
-                enderecoInput.value = turmaObj.endereco;
-            } else {
-                horarioInput.value = '';
-                dataInicioInput.value = '';
-                encerramentoInput.value = '';
-                enderecoInput.value = '';
-            }
-        }
-    });
     </script>
 </body>
 </html>
