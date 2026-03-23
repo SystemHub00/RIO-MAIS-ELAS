@@ -42,6 +42,7 @@ def append_to_sheet(data):
         'Local do Curso',
         'Curso',
         'Turma',
+        'Dias da Semana',
         'Horário',
         'Data de Início',
         'Encerramento',

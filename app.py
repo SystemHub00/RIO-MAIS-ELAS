@@ -642,7 +642,11 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                 <input type="hidden" id="turma_nome_legivel" name="turma_nome_legivel" value="" />
             </div>
             <div class="form-group">
-                <label for="horario">Dia/Horário</label>
+                <label for="dias_semana">Dias da Semana</label>
+                <input type="text" id="dias_semana" name="dias_semana" readonly />
+            </div>
+            <div class="form-group">
+                <label for="horario">Horário</label>
                 <input type="text" id="horario" name="horario" readonly />
             </div>
             <div class="form-group">
@@ -816,12 +820,25 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         // Atualiza campo oculto com o nome legível da turma
         const turmaNomeLegivelInput = document.getElementById('turma_nome_legivel');
         let turmaNomeLegivel = '';
+        const diasSemanaInput = document.getElementById('dias_semana');
+        const horarioInput = document.getElementById('horario');
         if (local && cursoId && turmaId && cursosData[local]) {
             const curso = cursosData[local].cursos.find(c => c.id === cursoId);
             if (curso) {
                 const turma = curso.turmas.find(t => t.id === turmaId);
                 if (turma) {
-                    horarioInput.value = turma.horario;
+                    // Separar dias da semana e horário
+                    let dias = '';
+                    let horario = '';
+                    if (turma.horario && turma.horario.includes('|')) {
+                        const partes = turma.horario.split('|');
+                        dias = partes[0].trim();
+                        horario = partes[1].trim();
+                    } else {
+                        dias = turma.horario;
+                    }
+                    if (diasSemanaInput) diasSemanaInput.value = dias;
+                    if (horarioInput) horarioInput.value = horario;
                     dataInicioInput.value = turma.data_inicio;
                     encerramentoInput.value = turma.encerramento;
                     enderecoInput.value = turma.endereco;
@@ -1815,6 +1832,7 @@ def curso():
         session['curso'] = request.form.get('curso', '').strip()
         session['turma'] = request.form.get('turma', '').strip()
         session['horario'] = request.form.get('horario', '').strip()
+        session['dias_semana'] = request.form.get('dias_semana', '').strip()
         session['data_inicio'] = request.form.get('data_inicio', '').strip()
         session['encerramento'] = request.form.get('encerramento', '').strip()
         session['endereco_curso'] = request.form.get('endereco', '').strip()
@@ -1903,7 +1921,8 @@ def confirmacao():
         session.get('bairro', ''),
         session.get('local', ''),
         session.get('curso_nome_legivel', ''),
-        session.get('turma_nome_legivel', ''),  # Sempre o nome legível
+        session.get('turma_nome_legivel', ''),
+        session.get('dias_semana', ''),
         session.get('horario', ''),
         session.get('data_inicio', ''),
         session.get('encerramento', ''),
@@ -1931,12 +1950,10 @@ def confirmacao():
             "phone": session.get('whatsapp', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', '').replace('+', ''),
             "curso": session.get('curso_nome_legivel', session.get('curso', '')),
             "local": session.get('local_nome_legivel', session.get('local', '')),
-            "turma": session.get('turma_nome_legivel', session.get('turma', '')),
+            "dia_semana": session.get('dias_semana', ''),
             "data_inicio": session.get('data_inicio', ''),
-            "horario": session.get('horario', ''),
-            "encerramento": session.get('encerramento', ''),
-            "endereco_curso": session.get('endereco_curso', ''),
-            "data_inscricao": datetime.utcnow().isoformat() + 'Z'
+            "data_inscricao": datetime.utcnow().isoformat(),
+            "horario": session.get('horario', '')
         }
         requests.post(supabase_url, headers=supabase_headers, json=supabase_payload, timeout=5)
     except Exception as e:
