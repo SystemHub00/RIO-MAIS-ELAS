@@ -469,6 +469,37 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <div class="form-group" style="background: #edeafd; border: 2px solid #351c75; border-radius: 16px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 2px 12px #351c7522;">
                 <label for="como_conheceu" style="font-weight:700; color:#351c75; margin-bottom:7px; font-size:1.09em; display:block; width:100%; max-width:380px;">Como conheceu:</label>
                 <input type="text" id="como_conheceu" name="como_conheceu" placeholder="Digite como conheceu o projeto" value="{{ dados.get('como_conheceu', '') }}" style="border:1.5px solid #351c75; color:#222; background:#edeafd; box-shadow:0 2px 12px #351c7522; transition:border 0.2s, box-shadow 0.2s; border-radius:14px; padding:13px 18px; font-size:1.09em; font-family:'Wise', Arial, sans-serif; outline:none; width:100%; max-width:380px; min-width:220px; margin:0 auto; display:block;">
+                                {% if erro_confirmacao and 'Como Conheceu' in erro_confirmacao %}
+                                <div style="position:relative; max-width:380px; margin:0 auto;">
+                                    <div style="
+                                        position: absolute;
+                                        left: 0;
+                                        top: 100%;
+                                        margin-top: 6px;
+                                        background: #fff;
+                                        border: 1.5px solid #e2a200;
+                                        border-radius: 8px;
+                                        box-shadow: 0 2px 8px #0001;
+                                        color: #222;
+                                        font-size: 1.04em;
+                                        font-weight: 500;
+                                        padding: 10px 16px 10px 44px;
+                                        z-index: 10;
+                                        min-width: 210px;
+                                        display: flex;
+                                        align-items: center;
+                                    ">
+                                        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);">
+                                            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <rect width="22" height="22" rx="6" fill="#FFA500"/>
+                                                <text x="11" y="16" text-anchor="middle" font-size="16" font-family="Arial" fill="#fff">!</text>
+                                            </svg>
+                                        </span>
+                                        Preencha este campo.
+                                        <span style="position:absolute;left:32px;top:-10px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:10px solid #fff;"></span>
+                                    </div>
+                                </div>
+                                {% endif %}
             </div>
             <div class="confirmacao-box">
                                 <label style="display:block;">
@@ -1837,6 +1868,29 @@ def confirmacao():
     # Gera protocolo único
     protocolo = str(uuid.uuid4())[:8]
     session['protocolo'] = protocolo
+    campos_obrigatorios = [
+        ('nome', 'Nome'),
+        ('genero', 'Gênero'),
+        ('cpf', 'CPF'),
+        ('nascimento', 'Data de Nascimento'),
+        ('whatsapp', 'WhatsApp'),
+        ('email', 'Email'),
+        ('cep', 'CEP'),
+        ('bairro', 'Bairro'),
+        ('local', 'Local do Curso'),
+        ('curso', 'Curso'),
+        ('turma_nome_legivel', 'Turma'),
+        ('horario', 'Horário'),
+        ('data_inicio', 'Data de Início'),
+        ('encerramento', 'Encerramento'),
+        ('endereco_curso', 'Endereço do Curso'),
+        ('como_conheceu', 'Como Conheceu'),
+    ]
+    campos_faltando = [label for key, label in campos_obrigatorios if not session.get(key)]
+    if campos_faltando:
+        erro_msg = f"Preencha todos os campos obrigatórios antes de finalizar a inscrição: {', '.join(campos_faltando)}."
+        return render_template_string(TEMPLATE_REVISAO, dados=session, erro_confirmacao=erro_msg)
+
     dados = [
         protocolo,
         session.get('nome', ''),
@@ -1848,7 +1902,7 @@ def confirmacao():
         session.get('cep', ''),
         session.get('bairro', ''),
         session.get('local', ''),
-        session.get('curso', ''),
+        session.get('curso_nome_legivel', ''),
         session.get('turma_nome_legivel', ''),  # Sempre o nome legível
         session.get('horario', ''),
         session.get('data_inicio', ''),
