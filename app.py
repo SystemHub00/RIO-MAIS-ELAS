@@ -435,7 +435,7 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         </div>
     </header>
     <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 12px; transition: width 0.3s; width: 89%;"></div>
+        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 89%;"></div>
     </div>
     <div class="revisao-container">
         <form method="POST" action="/revisao" autocomplete="off">
@@ -548,29 +548,29 @@ TEMPLATE_CURSO = r'''
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         html, body { min-height: 100vh; height: 100%; margin: 0; padding: 0; }
-        body { min-height: 100vh; min-height: 100svh; height: 100%; width: 100vw; background: linear-gradient(120deg, #fff 60%, #351c75 100%); font-family: 'Wise', 'Segoe UI', Arial, sans-serif; background-repeat: no-repeat; background-attachment: fixed; }
-        .curso-container { max-width: 480px; margin: 48px auto 0 auto; background: #fff; border-radius: 32px; box-shadow: 0 8px 40px #351c7522, 0 1.5px 8px #351c7511; padding: 48px 36px 36px 36px; text-align: center; position: relative; }
-        .progress-bar { width: 100%; height: 8px; background: #edeafd; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
-        .progress { height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 8px; transition: width 0.3s; width: 99%; }
-        .btn-copiar { background: #351c75 !important; color: #fff !important; border: none !important; box-shadow: 0 2px 12px #351c7533 !important; }
-        .btn-copiar:hover { background: #2a165c !important; }
-        .main-header { border-bottom: 4px solid #351c75 !important; }
-        .curso-container h2 { font-size: 2em; font-weight: 900; color: #351c75; margin-bottom: 8px; letter-spacing: -1px; }
-        .curso-sub { color: #351c75; font-size: 1.08em; margin-bottom: 24px; }
+        body { min-height: 100vh; min-height: 100svh; height: 100%; width: 100vw; background: linear-gradient(120deg, #fff 60%, #008ff0 100%); font-family: 'Wise', 'Segoe UI', Arial, sans-serif; background-repeat: no-repeat; background-attachment: fixed; }
+        .curso-container { max-width: 480px; margin: 48px auto 0 auto; background: #fff; border-radius: 32px; box-shadow: 0 8px 40px #008ff022, 0 1.5px 8px #008ff011; padding: 48px 36px 36px 36px; text-align: center; position: relative; }
+        .progress-bar { width: 100%; height: 8px; background: #e6f4fd; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 8px; transition: width 0.3s; width: 99%; }
+        .btn-copiar { background: #008ff0 !important; color: #fff !important; border: none !important; box-shadow: 0 2px 12px #008ff033 !important; }
+        .btn-copiar:hover { background: #006bb3 !important; }
+        .main-header { border-bottom: 4px solid #008ff0 !important; }
+        .curso-container h2 { font-size: 2em; font-weight: 900; color: #008ff0; margin-bottom: 8px; letter-spacing: -1px; }
+        .curso-sub { color: #008ff0; font-size: 1.08em; margin-bottom: 24px; }
         .form-group { margin-bottom: 18px; text-align: left; width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .form-group label { font-weight: 600; color: #351c75; margin-bottom: 7px; font-size: 1.09em; display: block; width: 100%; max-width: 380px; }
-        .form-group input[type="text"] { border: 1.5px solid #351c75; color: #111 !important; background: #edeafd; box-shadow: 0 2px 12px #351c7522; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
-        .form-group input[type="text"]:focus { border: 2px solid #351c75; box-shadow: 0 4px 16px #351c7533; background: #fff; }
-        .form-group input[type="text"]::placeholder { color: #351c75; opacity: 1; }
-        .curso-container input, .curso-container select { border: 1.5px solid #351c75; color: #111 !important; background: #edeafd; box-shadow: 0 2px 12px #351c7522; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
-        .curso-container input:focus, .curso-container select:focus { border: 2px solid #351c75; box-shadow: 0 4px 16px #351c7533; background: #fff; }
-        .curso-container input::placeholder { color: #351c75; opacity: 1; }
-        .curso-container select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%23351c75" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; background-size: 22px 22px; }
+        .form-group label { font-weight: 600; color: #008ff0; margin-bottom: 7px; font-size: 1.09em; display: block; width: 100%; max-width: 380px; }
+        .form-group input[type="text"] { border: 1.5px solid #008ff0; color: #111 !important; background: #e6f4fd; box-shadow: 0 2px 12px #008ff022; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
+        .form-group input[type="text"]:focus { border: 2px solid #008ff0; box-shadow: 0 4px 16px #008ff033; background: #fff; }
+        .form-group input[type="text"]::placeholder { color: #008ff0; opacity: 1; }
+        .curso-container input, .curso-container select { border: 1.5px solid #008ff0; color: #111 !important; background: #e6f4fd; box-shadow: 0 2px 12px #008ff022; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
+        .curso-container input:focus, .curso-container select:focus { border: 2px solid #008ff0; box-shadow: 0 4px 16px #008ff033; background: #fff; }
+        .curso-container input::placeholder { color: #008ff0; opacity: 1; }
+        .curso-container select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%23008ff0" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; background-size: 22px 22px; }
         .form-btns { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; margin-top: 24px; gap: 12px; width: 100%; }
-        .btn-voltar, .btn-proximo { min-width: 180px; min-height: 48px; padding: 16px 36px; font-size: 1.18em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #351c7533; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; display: inline-block; background: #351c75; color: #fff; cursor: pointer; }
-        .btn-voltar { background: #fff; color: #351c75; border: 2px solid #351c75; }
-        .btn-proximo { background: #351c75; color: #fff; border: 2px solid #351c75; }
-        .btn-proximo:hover, .btn-voltar:hover { background: #351c75; color: #fff; box-shadow: 0 6px 24px #351c7544; transform: translateY(-2px) scale(1.04); }
+        .btn-voltar, .btn-proximo { min-width: 180px; min-height: 48px; padding: 16px 36px; font-size: 1.18em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; display: inline-block; background: #008ff0; color: #fff; cursor: pointer; }
+        .btn-voltar { background: #fff; color: #008ff0; border: 2px solid #008ff0; }
+        .btn-proximo { background: #008ff0; color: #fff; border: 2px solid #008ff0; }
+        .btn-proximo:hover, .btn-voltar:hover { background: #008ff0; color: #fff; box-shadow: 0 6px 24px #008ff044; transform: translateY(-2px) scale(1.04); }
         @media (max-width: 600px) { .curso-container { padding: 18px 6px 12px 6px; } .curso-container h2 { font-size: 1.3em; } .form-btns { flex-direction: column; gap: 16px; width: 100%; } .btn-voltar, .btn-proximo { min-width: 100%; width: 100%; } }
         @media (max-width: 600px) { .curso-container { padding: 18px 6px 12px 6px; } .curso-container h2 { font-size: 1.3em; } .form-btns { flex-direction: column; gap: 12px; width: 100%; } }
     </style>
@@ -603,7 +603,7 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         </div>
     </header>
     <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 12px; transition: width 0.3s; width: 65%;"></div>
+           <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 65%;"></div>
     </div>
     <div class="curso-container">
         <div class="progress-bar">
@@ -661,7 +661,7 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                 <label for="endereco">Endereço</label>
                 <div style="display:flex;align-items:center;gap:8px;width:100%;max-width:380px;">
                     <input type="text" id="endereco" name="endereco" readonly style="flex:1;min-width:0;" />
-                    <button type="button" id="btn-copiar-endereco" title="Copiar endereço" style="padding:6px 10px;border-radius:6px;border:none;background:#351c75;color:#fff;cursor:pointer;font-size:1em;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;">
+                    <button type="button" id="btn-copiar-endereco" title="Copiar endereço" style="padding:6px 10px;border-radius:6px;border:none;background:#008ff0;color:#fff;cursor:pointer;font-size:1em;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;">
                         <span style="font-size:1.1em;">&#128203;</span>
                     </button>
                 </div>
@@ -899,7 +899,7 @@ TEMPLATE_INSCRICAO = '''
             min-height: 100svh;
             height: 100%;
             width: 100vw;
-            background: linear-gradient(120deg, #fff 60%, #351c75 100%);
+            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
             font-family: 'Wise', 'Segoe UI', Arial, sans-serif;
             background-repeat: no-repeat;
             background-attachment: fixed;
@@ -909,14 +909,14 @@ TEMPLATE_INSCRICAO = '''
             margin: 48px auto 0 auto;
             background: #fff;
             border-radius: 32px;
-            box-shadow: 0 8px 40px #351c7522, 0 1.5px 8px #351c7511;
-            border-top: 4px solid #351c75;
+            box-shadow: 0 8px 40px #008ff022, 0 1.5px 8px #008ff011;
+            border-top: 4px solid #008ff0;
             padding: 48px 36px 36px 36px;
             text-align: center;
             position: relative;
         }
         .inscricao-numero {
-            color: #351c75;
+            color: #008ff0;
             font-weight: 700;
             margin-bottom: 10px;
             font-size: 1.08em;
@@ -932,7 +932,7 @@ TEMPLATE_INSCRICAO = '''
             position: relative;
         }
         .main-header {
-            border-bottom: 4px solid #351c75;
+            border-bottom: 4px solid #008ff0;
         }
             margin-bottom: 28px;
         }
@@ -953,7 +953,7 @@ TEMPLATE_INSCRICAO = '''
         }
         .form-group label {
             font-weight: 600;
-            color: #351c75 !important;
+            color: #008ff0 !important;
             margin-bottom: 7px;
             font-size: 1.09em;
             display: block;
@@ -961,10 +961,10 @@ TEMPLATE_INSCRICAO = '''
             max-width: 340px;
         }
         .inscricao-container input, .inscricao-container select {
-            border: 1.5px solid #351c75 !important;
-            color: #351c75 !important;
-            background: #f7faff;
-            box-shadow: 0 2px 12px #351c7522;
+            border: 1.5px solid #008ff0 !important;
+            color: #008ff0 !important;
+            background: #e6f4fd;
+            box-shadow: 0 2px 12px #008ff022;
             transition: border 0.2s, box-shadow 0.2s;
             border-radius: 14px;
             padding: 13px 18px;
@@ -978,19 +978,19 @@ TEMPLATE_INSCRICAO = '''
             display: block;
         }
         .inscricao-container input:focus, .inscricao-container select:focus {
-            border: 2px solid #351c75;
-            box-shadow: 0 4px 16px #351c7533;
+            border: 2px solid #008ff0;
+            box-shadow: 0 4px 16px #008ff033;
             background: #fff;
         }
         .inscricao-container input::placeholder {
-            color: #b3a0d7;
+            color: #008ff0;
             opacity: 1;
         }
         .inscricao-container select {
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%23351c75" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23008ff0" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
             background-repeat: no-repeat;
             background-position: right 14px center;
             background-size: 22px 22px;
@@ -1078,30 +1078,30 @@ TEMPLATE_INSCRICAO = '''
                 font-weight: 800;
                 border-radius: 18px;
                 border: none;
-                box-shadow: 0 2px 12px #351c7533;
+                box-shadow: 0 2px 12px #008ff033;
                 letter-spacing: 0.5px;
                 transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
                 outline: none;
                 text-transform: uppercase;
                 display: inline-block;
-                background: #351c75;
+                background: #008ff0;
                 color: #fff;
                 cursor: pointer;
             }
             .btn-voltar {
                 background: #fff;
-                color: #351c75;
-                border: 2px solid #351c75;
+                color: #008ff0;
+                border: 2px solid #008ff0;
             }
             .btn-proximo {
-                background: #351c75;
+                background: #008ff0;
                 color: #fff;
-                border: 2px solid #351c75;
+                border: 2px solid #008ff0;
             }
             .btn-proximo:hover, .btn-voltar:hover {
-                background: #351c75;
+                background: #008ff0;
                 color: #fff;
-                box-shadow: 0 6px 24px #351c7544;
+                box-shadow: 0 6px 24px #008ff044;
                 transform: translateY(-2px) scale(1.04);
             }
             @media (max-width: 600px) {
@@ -1392,14 +1392,14 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
         </div>
     </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 12px; transition: width 0.3s; width: 45%;"></div>
+    <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f4fd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
+        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 45%;"></div>
     </div>
     <div class="inscricao-container">
         <div class="progress-bar">
             <div class="progress" style="width: 33%;"></div>
         </div>
-        <h2 style="color: #351c75 !important; text-shadow: none !important; background: none !important;">Dados Pessoais</h2>
+        <h2 style="color: #008ff0 !important; text-shadow: none !important; background: none !important;">Dados Pessoais</h2>
         <p class="inscricao-sub">Preencha seus dados para começarmos sua inscrição</p>
         <form id="form-inscricao" method="POST" action="/inscricao" autocomplete="off">
             <div class="form-group">
@@ -1902,7 +1902,7 @@ def confirmacao():
         ('data_inicio', 'Data de Início'),
         ('encerramento', 'Encerramento'),
         ('endereco_curso', 'Endereço do Curso'),
-        ('como_conheceu', 'Como Conheceu'),
+        # ('como_conheceu', 'Como Conheceu'),  // Não obrigatório
     ]
     campos_faltando = [label for key, label in campos_obrigatorios if not session.get(key)]
     if campos_faltando:
