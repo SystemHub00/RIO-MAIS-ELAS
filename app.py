@@ -14,15 +14,15 @@ TEMPLATE_CONFIRMACAO = r'''
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
                 .main-header {
-                    border-bottom: 4px solid #351c75 !important;
+                    border-bottom: 4px solid #008ff0 !important;
                 }
-        html, body { margin: 0; padding: 0; width: 100vw; min-height: 100vh; background: linear-gradient(120deg, #fff 60%, #351c75 100%); font-family: 'Wise', Arial, sans-serif; }
+        html, body { margin: 0; padding: 0; width: 100vw; min-height: 100vh; background: linear-gradient(120deg, #fff 60%, #008ff0 100%); font-family: 'Wise', Arial, sans-serif; }
         .sucesso-container {
             max-width: 420px;
             margin: 48px auto 0 auto;
             background: #fff;
             border-radius: 28px;
-            box-shadow: 0 4px 32px #351c7522, 0 1.5px 8px #351c7511;
+            box-shadow: 0 4px 32px #008ff022, 0 1.5px 8px #008ff011;
             padding: 44px 36px 36px 36px;
             text-align: center;
             position: relative;
@@ -39,32 +39,32 @@ TEMPLATE_CONFIRMACAO = r'''
             width: 100%;
             height: 100%;
             display: block;
-            stroke: #351c75;
+            stroke: #008ff0;
             fill: none;
         }
         .sucesso-container h2 {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.45em;
             font-weight: 900;
             margin-bottom: 8px;
             letter-spacing: -1px;
         }
         .sucesso-container p {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.08em;
             margin-bottom: 18px;
         }
         .protocolo-label {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.08em;
             margin-bottom: 6px;
             font-weight: 600;
         }
         .protocolo-numero {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.35em;
             font-weight: 900;
-            background: #edeafd;
+            background: #e6f4fd;
             border-radius: 10px;
             padding: 6px 0;
             margin-bottom: 8px;
@@ -74,7 +74,7 @@ TEMPLATE_CONFIRMACAO = r'''
             margin-bottom: 18px;
         }
         .info-contato {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.05em;
             margin-bottom: 18px;
         }
@@ -98,40 +98,40 @@ TEMPLATE_CONFIRMACAO = r'''
             font-weight: 800;
             border-radius: 18px;
             border: none;
-            box-shadow: 0 2px 12px #351c7533;
+            box-shadow: 0 2px 12px #008ff033;
             letter-spacing: 0.5px;
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
             outline: none;
             text-transform: uppercase;
-            background: #351c75;
+            background: #008ff0;
             color: #fff;
             cursor: pointer;
             text-decoration: none;
         }
         .btn-inicio {
             background: #fff;
-            color: #351c75;
-            border: 2px solid #351c75;
-            box-shadow: 0 2px 12px #351c7533;
+            color: #008ff0;
+            border: 2px solid #008ff0;
+            box-shadow: 0 2px 12px #008ff033;
         }
         .btn-whatsapp:hover, .btn-inicio:hover {
-            background: #2a165c;
+            background: #006bb3;
             color: #fff;
-            box-shadow: 0 6px 24px #351c7544;
+            box-shadow: 0 6px 24px #008ff044;
             transform: translateY(-2px) scale(1.04);
         }
         .proximos-passos {
             margin-top: 28px;
-            color: #351c75;
+            color: #008ff0;
             font-size: 1em;
             text-align: left;
         }
         .proximos-passos b {
-            color: #351c75;
+            color: #008ff0;
         }
         .proximos-passos ol {
             margin: 10px 0 0 18px;
-            color: #351c75;
+            color: #008ff0;
         }
         @media (max-width: 600px) {
             .sucesso-container {
@@ -230,14 +230,14 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
         </div>
     </header>
-        <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-            <div class="progress" style="height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 12px; transition: width 0.3s; width: 100%;"></div>
+        <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f4fd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
+            <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 100%;"></div>
         </div>
         <div class="sucesso-container">
         <div class="checkmark">
             <svg viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="90" stroke="#351c75" stroke-width="16" fill="none"/>
-                <polyline points="60,110 95,145 145,75" stroke="#351c75" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="100" cy="100" r="90" stroke="#008ff0" stroke-width="16" fill="none"/>
+                <polyline points="60,110 95,145 145,75" stroke="#008ff0" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
         <h2>Inscrição realizada com sucesso! <span style="font-size:1.2em;">🎉</span></h2>
@@ -249,8 +249,8 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         </div>
         <!-- Bloco de confirmação de participação removido conforme solicitado -->
         <div class="btns">
-            <a class="btn-whatsapp" href="https://wa.me/?text=Acabei%20de%20me%20inscrever%20em%20um%20curso%20gratuito%20incr%C3%ADvel!%20Garanta%20sua%20vaga%20tamb%C3%A9m%20e%20venha%20transformar%20sua%20carreira%20comigo.%20Inscreva-se%20aqui:%20https://rio-mais-elas.onrender.com" target="_blank" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #351c7533; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto; background: #351c75; color: #fff; cursor: pointer; text-decoration: none;">&#128241; COMPARTILHAR NO WHATSAPP</a>
-            <a class="btn-inicio" href="/" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: 2px solid #351c75; background: #fff; color: #351c75; box-shadow: 0 2px 12px #351c7533; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto;">VOLTAR AO INÍCIO</a>
+            <a class="btn-whatsapp" href="https://wa.me/?text=Acabei%20de%20me%20inscrever%20em%20um%20curso%20gratuito%20incr%C3%ADvel!%20Garanta%20sua%20vaga%20tamb%C3%A9m%20e%20venha%20transformar%20sua%20carreira%20comigo.%20Inscreva-se%20aqui:%20https://rio-mais-elas.onrender.com" target="_blank" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto; background: #008ff0; color: #fff; cursor: pointer; text-decoration: none;">&#128241; COMPARTILHAR NO WHATSAPP</a>
+            <a class="btn-inicio" href="/" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: 2px solid #008ff0; background: #fff; color: #008ff0; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto;">VOLTAR AO INÍCIO</a>
         </div>
         <div class="proximos-passos">
             <b>Próximos Passos:</b>
@@ -277,10 +277,10 @@ TEMPLATE_REVISAO = r'''
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         .main-header {
-            border-bottom: 4px solid #351c75 !important;
+            border-bottom: 4px solid #008ff0 !important;
         }
         body {
-            background: linear-gradient(120deg, #fff 60%, #351c75 100%);
+            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
             font-family: 'Wise', Arial, sans-serif;
         }
         .revisao-container {
@@ -295,14 +295,14 @@ TEMPLATE_REVISAO = r'''
         .progress-bar {
             width: 100%;
             height: 8px;
-            background: #f7faff;
+            background: #e6f4fd;
             border-radius: 8px;
             margin-bottom: 24px;
             overflow: hidden;
         }
         .progress {
             height: 100%;
-            background: linear-gradient(90deg, #351c75 0%, #351c75 100%);
+            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
             border-radius: 8px;
             transition: width 0.3s;
             width: 100%;
@@ -310,25 +310,25 @@ TEMPLATE_REVISAO = r'''
         .revisao-container h2 {
             font-size: 2em;
             font-weight: 900;
-            color: #351c75;
+            color: #008ff0;
             margin-bottom: 8px;
             letter-spacing: -1px;
         }
         .revisao-sub {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.08em;
             margin-bottom: 24px;
         }
         .info-box {
-            background: #edeafd;
+            background: #e6f4fd;
             border-radius: 16px;
-            border: 2px solid #351c75;
+            border: 2px solid #008ff0;
             margin-bottom: 18px;
             padding: 18px 22px;
         }
         .info-title {
             font-weight: 700;
-            color: #351c75;
+            color: #008ff0;
             margin-bottom: 8px;
             font-size: 1.1em;
             display: flex;
@@ -340,23 +340,23 @@ TEMPLATE_REVISAO = r'''
             height: 20px;
         }
         .info-content {
-            color: #351c75;
+            color: #008ff0;
             font-size: 1.08em;
         }
         .confirmacao-box {
-            background: linear-gradient(120deg, #edeafd 60%, #351c75 100%);
+            background: linear-gradient(120deg, #e6f4fd 60%, #008ff0 100%);
             border-radius: 18px;
-            border: 2.5px solid #351c75;
+            border: 2.5px solid #008ff0;
             margin-bottom: 18px;
             padding: 22px 26px;
-            box-shadow: 0 4px 24px #351c7533, 0 1.5px 8px #351c7511;
+            box-shadow: 0 4px 24px #008ff033, 0 1.5px 8px #008ff011;
         }
         .confirmacao-box label {
             display: flex;
             align-items: flex-start;
             gap: 10px;
             font-size: 1.05em;
-            color: #351c75;
+            color: #008ff0;
             cursor: pointer;
         }
         .form-btns {
@@ -369,7 +369,7 @@ TEMPLATE_REVISAO = r'''
         }
         .btn-voltar, .btn-finalizar {
             min-width: 200px;
-            background: linear-gradient(90deg, #351c75 0%, #351c75 100%);
+            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
             color: #fff;
             border: none;
             border-radius: 12px;
@@ -378,7 +378,7 @@ TEMPLATE_REVISAO = r'''
             font-weight: 800;
             font-family: 'Wise', Arial, sans-serif;
             cursor: pointer;
-            box-shadow: 0 2px 8px #351c7522;
+            box-shadow: 0 2px 8px #008ff022;
             letter-spacing: 0.5px;
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
             outline: none;
@@ -386,17 +386,17 @@ TEMPLATE_REVISAO = r'''
             display: inline-block;
         }
         .btn-finalizar:disabled {
-            background: #351c75;
+            background: #008ff0;
             color: #fff;
             cursor: not-allowed;
         }
         .btn-finalizar:hover:enabled {
-            background: linear-gradient(90deg, #2a165c 0%, #351c75 100%);
-            box-shadow: 0 4px 16px #351c7544;
+            background: linear-gradient(90deg, #006bb3 0%, #008ff0 100%);
+            box-shadow: 0 4px 16px #008ff044;
         }
         .btn-voltar:hover {
-            background: #edeafd;
-            color: #351c75;
+            background: #e6f4fd;
+            color: #008ff0;
         }
         @media (max-width: 600px) {
             .revisao-container {
@@ -439,36 +439,36 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
     </div>
     <div class="revisao-container">
         <form method="POST" action="/revisao" autocomplete="off">
-            <div style="color:#351c75;font-weight:600;margin-bottom:18px;">&#127881; Formulário completo! Revise seus dados antes de finalizar.</div>
-            <h2 style="color:#351c75;">Revise suas Informações</h2>
-            <p class="revisao-sub" style="color:#351c75;">Confira se está tudo certo antes de finalizar</p>
+            <div style="color:#008ff0;font-weight:600;margin-bottom:18px;">&#127881; Formulário completo! Revise seus dados antes de finalizar.</div>
+            <h2 style="color:#008ff0;">Revise suas Informações</h2>
+            <p class="revisao-sub" style="color:#008ff0;">Confira se está tudo certo antes de finalizar</p>
             <!-- Blocos dinâmicos de informações preenchidas -->
             <div class="info-box">
                 <div class="info-title">&#128100; Dados Pessoais</div>
                 <div class="info-content">
-                    <span style="color:#351c75;">Nome:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nome', '') }}</span><br>
-                    <span style="color:#351c75;">CPF:</span> <span style="color:#222; font-weight:500;">{{ dados.get('cpf', '') }}</span><br>
-                    <span style="color:#351c75;">Data de Nascimento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nascimento', '') }}</span><br>
-                    <span style="color:#351c75;">Gênero:</span> <span style="color:#222; font-weight:500;">{{ dados.get('genero', '') }}</span><br>
-                    <span style="color:#351c75;">Email:</span> <span style="color:#222; font-weight:500;">{{ dados.get('email', '') }}</span><br>
-                    <span style="color:#351c75;">WhatsApp:</span> <span style="color:#222; font-weight:500;">{{ dados.get('whatsapp', '') }}</span>
+                    <span style="color:#008ff0;">Nome:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nome', '') }}</span><br>
+                    <span style="color:#008ff0;">CPF:</span> <span style="color:#222; font-weight:500;">{{ dados.get('cpf', '') }}</span><br>
+                    <span style="color:#008ff0;">Data de Nascimento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nascimento', '') }}</span><br>
+                    <span style="color:#008ff0;">Gênero:</span> <span style="color:#222; font-weight:500;">{{ dados.get('genero', '') }}</span><br>
+                    <span style="color:#008ff0;">Email:</span> <span style="color:#222; font-weight:500;">{{ dados.get('email', '') }}</span><br>
+                    <span style="color:#008ff0;">WhatsApp:</span> <span style="color:#222; font-weight:500;">{{ dados.get('whatsapp', '') }}</span>
                 </div>
             </div>
             <div class="info-box">
                 <div class="info-title">&#127891; Curso Escolhido</div>
                 <div class="info-content">
-                    <span style="color:#351c75;">Curso:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
-                    <span style="color:#351c75;">Local:</span> <span style="color:#222; font-weight:500;">{{ dados.get('local', '') }}</span><br>
-                    <span style="color:#351c75;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma_nome_legivel', dados.get('turma', '')) }}</span><br>
-                    <span style="color:#351c75;">Dias e Horários:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
-                    <span style="color:#351c75;">Data de Início:</span> <span style="color:#222; font-weight:500;">{{ dados.get('data_inicio', '') }}</span><br>
-                    <span style="color:#351c75;">Encerramento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
-                    <span style="color:#351c75;">Endereço:</span> <span style="color:#222; font-weight:500;">{{ dados.get('endereco_curso', '') }}</span>
+                    <span style="color:#008ff0;">Curso:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
+                    <span style="color:#008ff0;">Local:</span> <span style="color:#222; font-weight:500;">{{ dados.get('local', '') }}</span><br>
+                    <span style="color:#008ff0;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma_nome_legivel', dados.get('turma', '')) }}</span><br>
+                    <span style="color:#008ff0;">Dias e Horários:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
+                    <span style="color:#008ff0;">Data de Início:</span> <span style="color:#222; font-weight:500;">{{ dados.get('data_inicio', '') }}</span><br>
+                    <span style="color:#008ff0;">Encerramento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
+                    <span style="color:#008ff0;">Endereço:</span> <span style="color:#222; font-weight:500;">{{ dados.get('endereco_curso', '') }}</span>
                 </div>
             </div>
-            <div class="form-group" style="background: #edeafd; border: 2px solid #351c75; border-radius: 16px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 2px 12px #351c7522;">
-                <label for="como_conheceu" style="font-weight:700; color:#351c75; margin-bottom:7px; font-size:1.09em; display:block; width:100%; max-width:380px;">Como conheceu:</label>
-                <input type="text" id="como_conheceu" name="como_conheceu" placeholder="Digite como conheceu o projeto" value="{{ dados.get('como_conheceu', '') }}" style="border:1.5px solid #351c75; color:#222; background:#edeafd; box-shadow:0 2px 12px #351c7522; transition:border 0.2s, box-shadow 0.2s; border-radius:14px; padding:13px 18px; font-size:1.09em; font-family:'Wise', Arial, sans-serif; outline:none; width:100%; max-width:380px; min-width:220px; margin:0 auto; display:block;">
+            <div class="form-group" style="background: #e6f4fd; border: 2px solid #008ff0; border-radius: 16px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 2px 12px #008ff022;">
+                <label for="como_conheceu" style="font-weight:700; color:#008ff0; margin-bottom:7px; font-size:1.09em; display:block; width:100%; max-width:380px;">Como conheceu:</label>
+                <input type="text" id="como_conheceu" name="como_conheceu" placeholder="Digite como conheceu o projeto" value="{{ dados.get('como_conheceu', '') }}" style="border:1.5px solid #008ff0; color:#222; background:#e6f4fd; box-shadow:0 2px 12px #008ff022; transition:border 0.2s, box-shadow 0.2s; border-radius:14px; padding:13px 18px; font-size:1.09em; font-family:'Wise', Arial, sans-serif; outline:none; width:100%; max-width:380px; min-width:220px; margin:0 auto; display:block;">
                                 {% if erro_confirmacao and 'Como Conheceu' in erro_confirmacao %}
                                 <div style="position:relative; max-width:380px; margin:0 auto;">
                                     <div style="
@@ -505,14 +505,14 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                                 <label style="display:block;">
                                     <input type="checkbox" id="confirma-dados">&nbsp;
                                     <b>Confirmação de participação:</b>
-                                    <ul style="margin: 8px 0 8px 18px; color:#351c75; font-weight:400;">
+                                    <ul style="margin: 8px 0 8px 18px; color:#008ff0; font-weight:400;">
                                         <li>Confirmo que resido na Ilha do Governador ou região e tenho interesse em participar do evento.</li>
                                         <li>Confirmo que todas as informações fornecidas são verdadeiras e estou de acordo com os termos de participação.</li>
                                         <li>Autorizo o uso dos meus dados para fins de inscrição e contato relacionado ao curso.</li>
                                         <li>Também autorizo o uso da minha imagem para divulgação nos canais de comunicação e redes sociais do projeto e da Prefeitura do Rio de Janeiro.</li>
                                     </ul>
                                     <b>Ao confirmar você declara ciência de que:</b>
-                                    <ul style="margin: 8px 0 0 18px; color:#351c75; font-weight:400;">
+                                    <ul style="margin: 8px 0 0 18px; color:#008ff0; font-weight:400;">
                                         <li>O evento é totalmente gratuito</li>
                                         <li>Em caso de chuva será cancelado</li>
                                         <li>Os dados serão usados apenas para inscrição</li>
@@ -1530,13 +1530,13 @@ TEMPLATE_INDEX = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FGM</title>
+    <title>RIO + ELAS</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/assistant.css">
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(120deg, #fff 60%, #351c75 100%);
+            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
             font-family: 'Wise', Arial, sans-serif;
         }
         .benefits {
@@ -1557,11 +1557,11 @@ TEMPLATE_INDEX = '''
             justify-content: center;
             box-sizing: border-box;
             background: linear-gradient(90deg, #fff 80%, #eae6f7 100%);
-            border: 1.5px solid #b3b1d1;
+            border: 1.5px solid #008ff0;
             border-radius: 18px;
-            box-shadow: 0 2px 12px #351c7522, 0 1.5px 8px #351c7511;
+            box-shadow: 0 2px 12px #008ff044, 0 1.5px 8px #008ff022;
             font-size: 1.08em;
-            color: #351c75;
+            color: #222;
             font-weight: 700;
             margin: 10px auto;
             padding: 10px 18px;
@@ -1573,7 +1573,7 @@ TEMPLATE_INDEX = '''
             text-align: center;
         }
         .benefit:hover {
-            box-shadow: 0 6px 24px #351c7544, 0 2px 12px #351c7522;
+            box-shadow: 0 6px 24px #008ff044, 0 2px 12px #008ff022;
             background: linear-gradient(90deg, #eae6f7 60%, #fff 100%);
             transform: translateY(-2px) scale(1.03);
         }
@@ -1583,12 +1583,12 @@ TEMPLATE_INDEX = '''
             }
         }
         h1, h2, h3, h4, h5, h6 {
-            color: #351c75;
+            color: #008ff0;
             font-family: 'Wise', Arial, sans-serif;
         }
         .cta-btn {
             display: inline-block;
-            background: linear-gradient(90deg, #351c75 0%, #351c75 100%);
+            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
             color: #fff;
             border: none;
             border-radius: 12px;
@@ -1597,7 +1597,7 @@ TEMPLATE_INDEX = '''
             font-weight: 800;
             font-family: 'Wise', Arial, sans-serif;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(53,28,117,0.10);
+            box-shadow: 0 2px 8px rgba(0,143,240,0.10);
             letter-spacing: 0.5px;
             transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
             outline: none;
@@ -1606,33 +1606,33 @@ TEMPLATE_INDEX = '''
             text-decoration: none;
         }
         .cta-btn:hover {
-            background: linear-gradient(90deg, #351c75 0%, #351c75 100%);
-            box-shadow: 0 4px 16px rgba(53,28,117,0.12);
+            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
+            box-shadow: 0 4px 16px rgba(0,143,240,0.12);
         }
         .ganhos-box, .cursos-section, .contato-section {
             background: #fff;
             border-radius: 16px;
-            border: 2px solid #351c75;
+            border: 2px solid #008ff0;
             margin: 24px 0;
             padding: 18px 22px;
         }
         .ganhos-list li, .cursos-title, .cursos-destaque, .contato-section p, .contato-section h2 {
-            color: #351c75;
+            color: #008ff0;
         }
         .icon-svg svg {
-            stroke: #351c75 !important;
+            stroke: #008ff0 !important;
         }
         .main-header, footer {
             background: #fff;
         }
         .main-header {
-            border-bottom: 4px solid #351c75;
+            border-bottom: 4px solid #008ff0;
         }
         footer {
-            border-top: 4px solid #351c75;
+            border-top: 4px solid #008ff0;
         }
         footer p {
-            color: #351c75;
+            color: #008ff0;
         }
     </style>
 </head>
@@ -1709,19 +1709,19 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
             <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
         </div>
     </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #f3f0ff; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-    <div class="progress" style="height: 100%; background: linear-gradient(90deg, #351c75 0%, #351c75 100%); border-radius: 12px; transition: width 0.3s; width: 25%;"></div>
+    <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f6ff; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
+    <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 25%;"></div>
     </div>
     <main>
-        <section id="hero" class="hero-section" style="background: linear-gradient(120deg, #fff 60%, #351c75 100%); border-radius: 24px; box-shadow: 0 4px 24px rgba(53,28,117,0.08); padding: 36px 0 32px 0; margin-bottom: 32px;">
+        <section id="hero" class="hero-section" style="background: linear-gradient(120deg, #fff 60%, #008ff0 100%); border-radius: 24px; box-shadow: 0 4px 24px #008ff008; padding: 36px 0 32px 0; margin-bottom: 32px;">
             <div style="text-align:center; margin-bottom: 18px;">
-                <span style="background: #351c75; color: #fff; font-weight: bold; font-size: 1.05em; padding: 8px 24px; border-radius: 24px; letter-spacing: 1px; box-shadow: 0 2px 8px #351c7522; display: inline-block;">PROJETO:<br>RIO + ELAS</span>
+                <span style="background: #008ff0; color: #fff; font-weight: bold; font-size: 1.05em; padding: 8px 24px; border-radius: 24px; letter-spacing: 1px; box-shadow: 0 2px 8px #008ff022; display: inline-block;">PROGRAMA:<br>RIO + ELAS</span>
             </div>
-            <h1 style="font-size:2em; font-weight:900; text-align:center; margin-bottom: 10px; text-shadow: 0 2px 8px #fff, 0 1px 0 #351c7522; color:#351c75;">TRANSFORME SUA CARREIRA AGORA</h1>
-            <h2 style="font-size:1em; font-weight:400; color:#351c75; text-align:center; margin-bottom: 22px;">Cursos de qualificação profissional oferecidos pela Prefeitura do Rio de Janeiro. Invista no seu futuro sem gastar nada!</h2>
+            <h1 style="font-size:2em; font-weight:900; text-align:center; margin-bottom: 10px; text-shadow: 0 2px 8px #fff, 0 1px 0 #008ff022; color:#008ff0;">TRANSFORME SUA VIDA ATRAVÉS DA BELEZA!</h1>
+            <h2 style="font-size:1em; font-weight:400; color:#008ff0; text-align:center; margin-bottom: 22px;">Cursos de qualificação profissional oferecidos pela Prefeitura do Rio de Janeiro. Invista no seu futuro sem gastar nada!</h2>
             <div class="benefits" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; margin-top: 18px;">
                 <div class="benefit-carousel" style="display: flex; justify-content: center; align-items: center; margin-top: 24px; width: 100%;">
-                    <div id="benefit-card" class="benefit" style="width: 100%; max-width: 700px; min-height: 80px; font-size: 1.25em; padding: 32px 32px; background: linear-gradient(90deg, #fff 80%, #eae6f7 100%); border: 2px solid #351c75; border-radius: 22px; box-shadow: 0 4px 24px #351c7522; color: #351c75; font-weight: bold; text-align: center; transition: background 0.3s, box-shadow 0.3s, opacity 0.5s; opacity: 1;">
+                    <div id="benefit-card" class="benefit" style="width: 100%; max-width: 700px; min-height: 80px; font-size: 1.25em; padding: 32px 32px; background: linear-gradient(90deg, #fff 80%, #eae6f7 100%); border: 2px solid #008ff0; border-radius: 22px; box-shadow: 0 4px 24px #008ff044; color: #222; font-weight: bold; text-align: center; transition: background 0.3s, box-shadow 0.3s, opacity 0.5s; opacity: 1;">
                         100% Gratuito
                     </div>
                 </div>
@@ -1734,7 +1734,8 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
                         "Preparação para geração de renda",
                         "Material didático incluso",
                         "Networking com outros profissionais",
-                        "Apoio para iniciar na área profissional"
+                        "Apoio para iniciar na área profissional",
+                        "Kit Profissional Gratuito"
                     ];
                     let benefitIndex = 0;
                     setInterval(() => {
@@ -1754,16 +1755,15 @@ src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
         </div>
         <section id="cursos" class="cursos-section">
             <p class="cursos-title">CURSOS DISPONÍVEIS</p>
-            <p class="cursos-destaque"><b>TRANCISTA</b> &bull; <b>NAILS DESIGNER</b> &bull; <b>DESIGNER DE SOBRANCELHAS</b></p>
+            <p class="cursos-destaque"><b>TRANCISTA</b> &bull; <b>NAILS DESIGNER</b> &bull; <b>DESIGNER DE SOBRANCELHAS</b> &bull; <b>EXTENSÃO DE CÍLIOS</b> &bull; <b>MANICURE</b> &bull; <b>PEDICURE SIMPLES</b></p>
         </section>
         <!-- Seção de ganhos removida pois os benefícios já estão destacados acima -->
         <section id="contato" class="contato-section">
-            
             <img src="https://investidordesucesso.fgmcursos.com.br/assets/logo-rj-C4on5mTt.png" alt="Prefeitura do Rio de Janeiro" class="logo-prefeitura">
         </section>
     </main>
-    <footer style="border-top: 4px solid #351c75; background: linear-gradient(90deg, #fff 60%, #351c75 100%);">
-        <p style="color: #351c75;">&copy; 2020 FGM. Todos os direitos Reservados</p>
+    <footer style="border-top: 4px solid #008ff0; background: linear-gradient(90deg, #fff 60%, #008ff0 100%);">
+        <p style="color: #008ff0;">&copy; 2020 FGM. Todos os direitos Reservados</p>
     </footer>
 </body>
 </html>
