@@ -1,159 +1,92 @@
 import os
-import gspread
-from google.oauth2.service_account import Credentials
+import re
+import traceback
+import uuid
+from datetime import datetime
+from urllib.parse import quote
 
-TEMPLATE_CONFIRMACAO = r'''
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscrição realizada com sucesso!</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/assistant.css">
-    <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-                .main-header {
-                    border-bottom: 4px solid #008ff0 !important;
-                }
-        html, body { margin: 0; padding: 0; width: 100vw; min-height: 100vh; background: linear-gradient(120deg, #fff 60%, #008ff0 100%); font-family: 'Wise', Arial, sans-serif; }
-        .sucesso-container {
-            max-width: 420px;
-            margin: 48px auto 0 auto;
-            background: #fff;
-            border-radius: 28px;
-            box-shadow: 0 4px 32px #008ff022, 0 1.5px 8px #008ff011;
-            padding: 44px 36px 36px 36px;
-            text-align: center;
-            position: relative;
-        }
-        .checkmark {
-            width: 220px;
-            height: 220px;
-            margin: 0 auto 18px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .checkmark svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-            stroke: #008ff0;
-            fill: none;
-        }
-        .sucesso-container h2 {
-            color: #008ff0;
-            font-size: 1.45em;
-            font-weight: 900;
-            margin-bottom: 8px;
-            letter-spacing: -1px;
-        }
-        .sucesso-container p {
-            color: #008ff0;
-            font-size: 1.08em;
-            margin-bottom: 18px;
-        }
-        .protocolo-label {
-            color: #008ff0;
-            font-size: 1.08em;
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-        .protocolo-numero {
-            color: #008ff0;
-            font-size: 1.35em;
-            font-weight: 900;
-            background: #e6f4fd;
-            border-radius: 10px;
-            padding: 6px 0;
-            margin-bottom: 8px;
-            word-break: break-all;
-        }
-        .protocolo-box {
-            margin-bottom: 18px;
-        }
-        .info-contato {
-            color: #008ff0;
-            font-size: 1.05em;
-            margin-bottom: 18px;
-        }
-        .btns {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 18px;
-            width: 100%;
-        }
-        .btn-whatsapp, .btn-inicio {
-            width: 89% !important;
-            min-width: 180px !important;
-            max-width: 490px !important;
-            margin: 0 auto 8px auto !important;
-            display: block;
-            box-sizing: border-box;
-            min-height: 48px;
-            padding: 16px 36px;
-            font-size: 1.13em;
-            font-weight: 800;
-            border-radius: 18px;
-            border: none;
-            box-shadow: 0 2px 12px #008ff033;
-            letter-spacing: 0.5px;
-            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-            outline: none;
-            text-transform: uppercase;
-            background: #008ff0;
-            color: #fff;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .btn-inicio {
-            background: #fff;
-            color: #008ff0;
-            border: 2px solid #008ff0;
-            box-shadow: 0 2px 12px #008ff033;
-        }
-        .btn-whatsapp:hover, .btn-inicio:hover {
-            background: #006bb3;
-            color: #fff;
-            box-shadow: 0 6px 24px #008ff044;
-            transform: translateY(-2px) scale(1.04);
-        }
-        .proximos-passos {
-            margin-top: 28px;
-            color: #008ff0;
-            font-size: 1em;
-            text-align: left;
-        }
-        .proximos-passos b {
-            color: #008ff0;
-        }
-        .proximos-passos ol {
-            margin: 10px 0 0 18px;
-            color: #008ff0;
-        }
-        @media (max-width: 600px) {
-            .sucesso-container {
-                padding: 18px 6px 12px 6px;
-            }
-            .checkmark {
-                width: 120px;
-                height: 120px;
-            }
-            .sucesso-container h2 {
-                font-size: 1.1em;
-            }
-            .btn-whatsapp, .btn-inicio {
-                min-width: 0;
-                width: 100vw;
-                max-width: 100vw;
-                box-sizing: border-box;
-                margin-left: calc(-1 * (50vw - 50%));
-            }
-        }
-    </style>
-</head>
+import requests
+from flask import Flask, redirect, render_template_string, request, session, url_for
+
+from gsheet_utils import append_to_sheet
+
+
+ALLOWED_EMAIL_PATTERN = re.compile(
+    r"^[a-zA-Z0-9_.+-]+@((gmail|hotmail|outlook|yahoo)\.(com|com\.br))$",
+    re.IGNORECASE,
+)
+NAME_PATTERN = re.compile(r"[A-Za-zÀ-ÿ '´`^~.-]+")
+VALID_DDDS = {
+    "11", "12", "13", "14", "15", "16", "17", "18", "19",
+    "21", "22", "24", "27", "28",
+    "31", "32", "33", "34", "35", "37", "38",
+    "41", "42", "43", "44", "45", "46", "47", "48", "49",
+    "51", "53", "54", "55",
+    "61", "62", "63", "64", "65", "66", "67", "68", "69",
+    "71", "73", "74", "75", "77", "79",
+    "81", "82", "83", "84", "85", "86", "87", "88", "89",
+    "91", "92", "93", "94", "95", "96", "97", "98", "99",
+}
+COURSE_OPTIONS = [
+    {
+        "id": "1",
+        "local": "INSTITUICAO ORIGEM AMORIM - MANGUINHOS",
+        "curso": "DESIGNER DE SOBRANCELHAS",
+        "turma": "DESIGNER DE SOBRANCELHAS - TURMA 01",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "13/04/2026",
+        "encerramento": "15/04/2026",
+        "endereco_curso": "Rua Castro Tavares, 156 - Manguinhos RJ",
+    },
+    {
+        "id": "2",
+        "local": "COZINHA COSTA MATOS - REALENGO",
+        "curso": "NAILS DESIGNER",
+        "turma": "NAILS DESIGNER - TURMA 01",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "13/04/2026",
+        "encerramento": "15/04/2026",
+        "endereco_curso": "Rua Capitao Teixeira, 583 - Realengo RJ",
+    },
+    {
+        "id": "3",
+        "local": "COZINHA ESCOLHA CERTA - VILA VINTEM - PADRE MIGUEL",
+        "curso": "EXTENSAO DE CILIOS",
+        "turma": "EXTENSAO DE CILIOS - TURMA 03",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "13/04/2026",
+        "encerramento": "15/04/2026",
+        "endereco_curso": "Travessa Santa Terezinha, 03 - Padre Miguel RJ",
+    },
+    {
+        "id": "4",
+        "local": "ASSOCIACAO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA",
+        "curso": "NAILS DESIGNER",
+        "turma": "NAILS DESIGNER - TURMA 01",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "27/04/2026",
+        "encerramento": "29/04/2026",
+        "endereco_curso": "Rua Padre Manso, 32 - Madureira RJ",
+    },
+    {
+        "id": "5",
+        "local": "ERNESTO LOBAO - MADUREIRA",
+        "curso": "TRANCISTA",
+        "turma": "TRANCISTA - TURMA 03",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "27/04/2026",
+        "encerramento": "29/04/2026",
+        "endereco_curso": "Rua Ernesto Lobao n* 19, Madureira RJ",
+    },
+]
+COURSE_OPTIONS_BY_ID = {option["id"]: option for option in COURSE_OPTIONS}
+COURSE_INFO = COURSE_OPTIONS[0]
+META_PIXEL = """
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -171,1797 +104,2306 @@ fbq('track', 'PageView');
 src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->
-</head>
-<body>
-    <script src="/static/assistant.js"></script>
-        <script>
-        // Máscara e validação visual para o campo CEP
-        document.addEventListener('DOMContentLoaded', function() {
-            var cepInput = document.getElementById('cep');
-            var form = document.getElementById('form-inscricao');
-            if (cepInput && form) {
-                let erroDivCep = document.createElement('div');
-                erroDivCep.className = 'balao-erro';
-                erroDivCep.id = 'cep-balao-erro';
-                cepInput.parentNode.appendChild(erroDivCep);
-                erroDivCep.style.display = 'none';
+"""
 
-                function mostrarErroCep(msg) {
-                    erroDivCep.textContent = msg;
-                    erroDivCep.style.display = 'block';
-                    cepInput.classList.add('erro-campo');
-                }
-                function esconderErroCep() {
-                    erroDivCep.textContent = '';
-                    erroDivCep.style.display = 'none';
-                    cepInput.classList.remove('erro-campo');
-                }
-                function validarCep(cep) {
-                    return /^\d{5}-\d{3}$/.test(cep);
-                }
-                cepInput.addEventListener('input', function() {
-                    let v = cepInput.value.replace(/\D/g, '');
-                    if (v.length > 8) v = v.slice(0,8);
-                    let r = '';
-                    if (v.length > 5) r = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-                    else r = v;
-                    cepInput.value = r;
-                    if (cepInput.value.length === 9 && !validarCep(cepInput.value)) {
-                        mostrarErroCep('CEP inválido. Formato: 00000-000');
-                    } else {
-                        esconderErroCep();
-                    }
-                });
-                form.addEventListener('submit', function(e) {
-                    if (!validarCep(cepInput.value)) {
-                        mostrarErroCep('CEP inválido. Formato: 00000-000');
-                        cepInput.focus();
-                        e.preventDefault();
-                    } else {
-                        esconderErroCep();
-                    }
-                });
-            }
-        });
-        </script>
-    <header class="main-header">
-        <div class="header-logos">
-            <img src="/static/logo_fgm.png" alt="Logo FGM" class="logo">
-            <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
-        </div>
-    </header>
-        <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f4fd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-            <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 100%;"></div>
-        </div>
-        <div class="sucesso-container">
-        <div class="checkmark">
-            <svg viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="90" stroke="#008ff0" stroke-width="16" fill="none"/>
-                <polyline points="60,110 95,145 145,75" stroke="#008ff0" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-        <h2>Inscrição realizada com sucesso! <span style="font-size:1.2em;">🎉</span></h2>
-        <p>Você está cada vez mais perto de transformar sua vida!</p>
-        <div class="protocolo-box">
-            <div class="protocolo-label">Seu número de protocolo:</div>
-            <div class="protocolo-numero">{{ protocolo }}</div>
-            <div style="color:#7a7a7a;font-size:0.98em;margin-top:8px;">Guarde este número para acompanhar sua inscrição</div>
-        </div>
-        <!-- Bloco de confirmação de participação removido conforme solicitado -->
-        <div class="btns">
-            <a class="btn-whatsapp" href="https://wa.me/?text=Acabei%20de%20me%20inscrever%20em%20um%20curso%20gratuito%20incr%C3%ADvel!%20Garanta%20sua%20vaga%20tamb%C3%A9m%20e%20venha%20transformar%20sua%20carreira%20comigo.%20Inscreva-se%20aqui:%20https://rio-mais-elas.onrender.com" target="_blank" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto; background: #008ff0; color: #fff; cursor: pointer; text-decoration: none;">&#128241; COMPARTILHAR NO WHATSAPP</a>
-            <a class="btn-inicio" href="/" style="display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 48px; font-size: 1.13em; font-weight: 800; border-radius: 18px; border: 2px solid #008ff0; background: #fff; color: #008ff0; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; text-align: center; margin: 0 auto 18px auto;">VOLTAR AO INÍCIO</a>
-        </div>
-        <div class="proximos-passos">
-            <b>Próximos Passos:</b>
-            <ol>
-                <li>Aguarde nosso contato via WhatsApp</li>
-                <li>Prepare sua documentação (RG, CPF e comprovante de residência)</li>
-                <li>Fique atenta(o) à data de início do curso</li>
-                <li>Compareça no local escolhido no dia e horário marcados</li>
-            </ol>
-        </div>
-    </div>
-</body>
-</html>
-'''
-TEMPLATE_REVISAO = r'''
+
+def build_whatsapp_share_url(home_url):
+    message = (
+        "Acabei de me inscrever no programa Rio + Elas, com cursos gratuitos de "
+        "qualificacao profissional da Prefeitura do Rio de Janeiro. Confira aqui: "
+        f"{home_url}"
+    )
+    return f"https://wa.me/?text={quote(message)}"
+
+
+def get_course_option(option_id):
+    return COURSE_OPTIONS_BY_ID.get(str(option_id or ""))
+
+
+def fill_form_data_from_option(form_data, option):
+    form_data["local"] = option["local"]
+    form_data["curso"] = option["curso"]
+    form_data["turma"] = option["turma"]
+    form_data["dias_aula"] = option["dias_aula"]
+    form_data["horario"] = option["horario"]
+    form_data["data_inicio"] = option["data_inicio"]
+    form_data["encerramento"] = option["encerramento"]
+    form_data["endereco_curso"] = option["endereco_curso"]
+
+TEMPLATE_WIZARD = r'''
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revisão</title>
+    <!-- IMPORTANTE! viewport responsivo para celular -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Rio + Elas</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/assistant.css">
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        .main-header {
-            border-bottom: 4px solid #008ff0 !important;
+        :root {
+            --cor-principal: #008ff0;
+            --cor-principal-escura: #006fc2;
+            --cor-clara: #eaf6ff;
+            --cor-texto: #10324d;
+            --cor-borda: #8ccfff;
+            --sombra-card: 0 18px 55px rgba(0, 143, 240, 0.18);
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(0, 143, 240, 0.14), transparent 34%),
+                radial-gradient(circle at top right, rgba(166, 219, 255, 0.82), transparent 32%),
+                linear-gradient(135deg, #f5fbff 0%, #fff 42%, #d9efff 100%);
+            color: var(--cor-texto);
             font-family: 'Wise', Arial, sans-serif;
         }
-        .revisao-container {
-            max-width: 700px;
-            margin: 48px auto 0 auto;
-            background: #fff;
-            border-radius: 28px;
-            box-shadow: 0 4px 32px rgba(0,0,0,0.10);
-            padding: 44px 36px 36px 36px;
-            position: relative;
+
+        .main-header {
+            border-bottom: 4px solid var(--cor-principal);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
         }
-        .progress-bar {
+
+        .wizard-page {
+            width: min(900px, 98vw);
+            margin: 0 auto;
+            padding: 8px 0 18px;
+            text-align: center;
+        }
+
+        .wizard-progress {
+            margin: 18px auto 22px;
+            padding: 18px 18px 20px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 12px 30px rgba(0, 143, 240, 0.12);
+        }
+
+        .wizard-track {
             width: 100%;
-            height: 8px;
-            background: #e6f4fd;
-            border-radius: 8px;
-            margin-bottom: 24px;
+            height: 14px;
+            background: #d9efff;
+            border-radius: 999px;
             overflow: hidden;
         }
-        .progress {
+
+        .wizard-fill {
             height: 100%;
-            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
-            border-radius: 8px;
-            transition: width 0.3s;
-            width: 100%;
+            width: 25%;
+            background: linear-gradient(90deg, #008ff0 0%, #42b8ff 100%);
+            border-radius: 999px;
+            transition: width 0.3s ease;
         }
-        .revisao-container h2 {
-            font-size: 2em;
-            font-weight: 900;
-            color: #008ff0;
-            margin-bottom: 8px;
-            letter-spacing: -1px;
-        }
-        .revisao-sub {
-            color: #008ff0;
-            font-size: 1.08em;
-            margin-bottom: 24px;
-        }
-        .info-box {
-            background: #e6f4fd;
-            border-radius: 16px;
-            border: 2px solid #008ff0;
-            margin-bottom: 18px;
-            padding: 18px 22px;
-        }
-        .info-title {
-            font-weight: 700;
-            color: #008ff0;
-            margin-bottom: 8px;
-            font-size: 1.1em;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .info-title svg {
-            width: 20px;
-            height: 20px;
-        }
-        .info-content {
-            color: #008ff0;
-            font-size: 1.08em;
-        }
-        .confirmacao-box {
-            background: linear-gradient(120deg, #e6f4fd 60%, #008ff0 100%);
-            border-radius: 18px;
-            border: 2.5px solid #008ff0;
-            margin-bottom: 18px;
-            padding: 22px 26px;
-            box-shadow: 0 4px 24px #008ff033, 0 1.5px 8px #008ff011;
-        }
-        .confirmacao-box label {
-            display: flex;
-            align-items: flex-start;
+
+        .wizard-labels {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            font-size: 1.05em;
-            color: #008ff0;
-            cursor: pointer;
+            margin-top: 14px;
         }
-        .form-btns {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: stretch;
-            margin-top: 18px;
-            gap: 12px;
-        }
-        .btn-voltar, .btn-finalizar {
-            min-width: 200px;
-            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            padding: 18px 40px;
-            font-size: 1.18em;
-            font-weight: 800;
-            font-family: 'Wise', Arial, sans-serif;
-            cursor: pointer;
-            box-shadow: 0 2px 8px #008ff022;
-            letter-spacing: 0.5px;
-            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-            outline: none;
-            text-transform: uppercase;
-            display: inline-block;
-        }
-        .btn-finalizar:disabled {
-            background: #008ff0;
-            color: #fff;
-            cursor: not-allowed;
-        }
-        .btn-finalizar:hover:enabled {
-            background: linear-gradient(90deg, #006bb3 0%, #008ff0 100%);
-            box-shadow: 0 4px 16px #008ff044;
-        }
-        .btn-voltar:hover {
-            background: #e6f4fd;
-            color: #008ff0;
-        }
-        @media (max-width: 600px) {
-            .revisao-container {
-                padding: 18px 6px 12px 6px;
-            }
-            .revisao-container h2 {
-                font-size: 1.3em;
-            }
-        }
-    </style>
-</head>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '26419185324388434');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
-</head>
-<body>
-    <script src="/static/assistant.js"></script>
-    <header class="main-header">
-        <div class="header-logos">
-            <img src="/static/logo_fgm.png" alt="Logo FGM" class="logo">
-            <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
-        </div>
-    </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 89%;"></div>
-    </div>
-    <div class="revisao-container">
-        <form method="POST" action="/revisao" autocomplete="off">
-            <div style="color:#008ff0;font-weight:600;margin-bottom:18px;">&#127881; Formulário completo! Revise seus dados antes de finalizar.</div>
-            <h2 style="color:#008ff0;">Revise suas Informações</h2>
-            <p class="revisao-sub" style="color:#008ff0;">Confira se está tudo certo antes de finalizar</p>
-            <!-- Blocos dinâmicos de informações preenchidas -->
-            <div class="info-box">
-                <div class="info-title">&#128100; Dados Pessoais</div>
-                <div class="info-content">
-                    <span style="color:#008ff0;">Nome:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nome', '') }}</span><br>
-                    <span style="color:#008ff0;">CPF:</span> <span style="color:#222; font-weight:500;">{{ dados.get('cpf', '') }}</span><br>
-                    <span style="color:#008ff0;">Data de Nascimento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('nascimento', '') }}</span><br>
-                    <span style="color:#008ff0;">Gênero:</span> <span style="color:#222; font-weight:500;">{{ dados.get('genero', '') }}</span><br>
-                    <span style="color:#008ff0;">Email:</span> <span style="color:#222; font-weight:500;">{{ dados.get('email', '') }}</span><br>
-                    <span style="color:#008ff0;">WhatsApp:</span> <span style="color:#222; font-weight:500;">{{ dados.get('whatsapp', '') }}</span>
-                </div>
-            </div>
-            <div class="info-box">
-                <div class="info-title">&#127891; Curso Escolhido</div>
-                <div class="info-content">
-                    <span style="color:#008ff0;">Curso:</span> <span style="color:#222; font-weight:500;">{{ dados.get('curso', '') }}</span><br>
-                    <span style="color:#008ff0;">Local:</span> <span style="color:#222; font-weight:500;">{{ dados.get('local', '') }}</span><br>
-                    <span style="color:#008ff0;">Turma:</span> <span style="color:#222; font-weight:500;">{{ dados.get('turma_nome_legivel', dados.get('turma', '')) }}</span><br>
-                    <span style="color:#008ff0;">Dias e Horários:</span> <span style="color:#222; font-weight:500;">{{ dados.get('horario', '') }}</span><br>
-                    <span style="color:#008ff0;">Data de Início:</span> <span style="color:#222; font-weight:500;">{{ dados.get('data_inicio', '') }}</span><br>
-                    <span style="color:#008ff0;">Encerramento:</span> <span style="color:#222; font-weight:500;">{{ dados.get('encerramento', '') }}</span><br>
-                    <span style="color:#008ff0;">Endereço:</span> <span style="color:#222; font-weight:500;">{{ dados.get('endereco_curso', '') }}</span>
-                </div>
-            </div>
-            <div class="form-group" style="background: #e6f4fd; border: 2px solid #008ff0; border-radius: 16px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 2px 12px #008ff022;">
-                <label for="como_conheceu" style="font-weight:700; color:#008ff0; margin-bottom:7px; font-size:1.09em; display:block; width:100%; max-width:380px;">Como conheceu:</label>
-                <input type="text" id="como_conheceu" name="como_conheceu" placeholder="Digite como conheceu o projeto" value="{{ dados.get('como_conheceu', '') }}" style="border:1.5px solid #008ff0; color:#222; background:#e6f4fd; box-shadow:0 2px 12px #008ff022; transition:border 0.2s, box-shadow 0.2s; border-radius:14px; padding:13px 18px; font-size:1.09em; font-family:'Wise', Arial, sans-serif; outline:none; width:100%; max-width:380px; min-width:220px; margin:0 auto; display:block;">
-                                {% if erro_confirmacao and 'Como Conheceu' in erro_confirmacao %}
-                                <div style="position:relative; max-width:380px; margin:0 auto;">
-                                    <div style="
-                                        position: absolute;
-                                        left: 0;
-                                        top: 100%;
-                                        margin-top: 6px;
-                                        background: #fff;
-                                        border: 1.5px solid #e2a200;
-                                        border-radius: 8px;
-                                        box-shadow: 0 2px 8px #0001;
-                                        color: #222;
-                                        font-size: 1.04em;
-                                        font-weight: 500;
-                                        padding: 10px 16px 10px 44px;
-                                        z-index: 10;
-                                        min-width: 210px;
-                                        display: flex;
-                                        align-items: center;
-                                    ">
-                                        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);">
-                                            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <rect width="22" height="22" rx="6" fill="#FFA500"/>
-                                                <text x="11" y="16" text-anchor="middle" font-size="16" font-family="Arial" fill="#fff">!</text>
-                                            </svg>
-                                        </span>
-                                        Preencha este campo.
-                                        <span style="position:absolute;left:32px;top:-10px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:10px solid #fff;"></span>
-                                    </div>
-                                </div>
-                                {% endif %}
-            </div>
-            <div class="confirmacao-box">
-                                <label style="display:block;">
-                                    <input type="checkbox" id="confirma-dados">&nbsp;
-                                    <b>Confirmação de participação:</b>
-                                    <ul style="margin: 8px 0 8px 18px; color:#008ff0; font-weight:400;">
-                                        <li>Confirmo que resido na Ilha do Governador ou região e tenho interesse em participar do evento.</li>
-                                        <li>Confirmo que todas as informações fornecidas são verdadeiras e estou de acordo com os termos de participação.</li>
-                                        <li>Autorizo o uso dos meus dados para fins de inscrição e contato relacionado ao curso.</li>
-                                        <li>Também autorizo o uso da minha imagem para divulgação nos canais de comunicação e redes sociais do projeto e da Prefeitura do Rio de Janeiro.</li>
-                                    </ul>
-                                    <b>Ao confirmar você declara ciência de que:</b>
-                                    <ul style="margin: 8px 0 0 18px; color:#008ff0; font-weight:400;">
-                                        <li>O evento é totalmente gratuito</li>
-                                        <li>Em caso de chuva será cancelado</li>
-                                        <li>Os dados serão usados apenas para inscrição</li>
-                                    </ul>
-                                </label>
-            </div>
-            <div class="form-btns" style="display:flex; flex-direction:column !important; gap:12px; width:100%; margin-top:18px;">
-                <button type="submit" class="btn-finalizar" id="btn-finalizar" disabled style="margin-bottom:0;">Finalizar Inscrição</button>
-                <button type="button" class="btn-voltar">&lt; Voltar</button>
-            </div>
-        </form>
-    </div>
-    <script>
-        document.querySelector('.btn-voltar').onclick = function() {
-            window.location.href = '/curso';
-        };
-        document.getElementById('confirma-dados').addEventListener('change', function() {
-            document.getElementById('btn-finalizar').disabled = !this.checked;
-        });
-    </script>
-</body>
-</html>
-'''
-TEMPLATE_CURSO = r'''
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escolha do Curso</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/assistant.css">
-    <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        html, body { min-height: 100vh; height: 100%; margin: 0; padding: 0; }
-        body { min-height: 100vh; min-height: 100svh; height: 100%; width: 100vw; background: linear-gradient(120deg, #fff 60%, #008ff0 100%); font-family: 'Wise', 'Segoe UI', Arial, sans-serif; background-repeat: no-repeat; background-attachment: fixed; }
-        .curso-container { max-width: 480px; margin: 48px auto 0 auto; background: #fff; border-radius: 32px; box-shadow: 0 8px 40px #008ff022, 0 1.5px 8px #008ff011; padding: 48px 36px 36px 36px; text-align: center; position: relative; }
-        .progress-bar { width: 100%; height: 8px; background: #e6f4fd; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
-        .progress { height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 8px; transition: width 0.3s; width: 99%; }
-        .btn-copiar { background: #008ff0 !important; color: #fff !important; border: none !important; box-shadow: 0 2px 12px #008ff033 !important; }
-        .btn-copiar:hover { background: #006bb3 !important; }
-        .main-header { border-bottom: 4px solid #008ff0 !important; }
-        .curso-container h2 { font-size: 2em; font-weight: 900; color: #008ff0; margin-bottom: 8px; letter-spacing: -1px; }
-        .curso-sub { color: #008ff0; font-size: 1.08em; margin-bottom: 24px; }
-        .form-group { margin-bottom: 18px; text-align: left; width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .form-group label { font-weight: 600; color: #008ff0; margin-bottom: 7px; font-size: 1.09em; display: block; width: 100%; max-width: 380px; }
-        .form-group input[type="text"] { border: 1.5px solid #008ff0; color: #111 !important; background: #e6f4fd; box-shadow: 0 2px 12px #008ff022; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
-        .form-group input[type="text"]:focus { border: 2px solid #008ff0; box-shadow: 0 4px 16px #008ff033; background: #fff; }
-        .form-group input[type="text"]::placeholder { color: #008ff0; opacity: 1; }
-        .curso-container input, .curso-container select { border: 1.5px solid #008ff0; color: #111 !important; background: #e6f4fd; box-shadow: 0 2px 12px #008ff022; transition: border 0.2s, box-shadow 0.2s; border-radius: 14px; padding: 13px 18px; font-size: 1.09em; font-family: 'Wise', Arial, sans-serif; outline: none; appearance: none; width: 100%; max-width: 380px; min-width: 220px; margin: 0 auto; display: block; }
-        .curso-container input:focus, .curso-container select:focus { border: 2px solid #008ff0; box-shadow: 0 4px 16px #008ff033; background: #fff; }
-        .curso-container input::placeholder { color: #008ff0; opacity: 1; }
-        .curso-container select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%23008ff0" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; background-size: 22px 22px; }
-        .form-btns { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; margin-top: 24px; gap: 12px; width: 100%; }
-        .btn-voltar, .btn-proximo { min-width: 180px; min-height: 48px; padding: 16px 36px; font-size: 1.18em; font-weight: 800; border-radius: 18px; border: none; box-shadow: 0 2px 12px #008ff033; letter-spacing: 0.5px; transition: background 0.2s, box-shadow 0.2s, transform 0.1s; outline: none; text-transform: uppercase; display: inline-block; background: #008ff0; color: #fff; cursor: pointer; }
-        .btn-voltar { background: #fff; color: #008ff0; border: 2px solid #008ff0; }
-        .btn-proximo { background: #008ff0; color: #fff; border: 2px solid #008ff0; }
-        .btn-proximo:hover, .btn-voltar:hover { background: #008ff0; color: #fff; box-shadow: 0 6px 24px #008ff044; transform: translateY(-2px) scale(1.04); }
-        @media (max-width: 600px) { .curso-container { padding: 18px 6px 12px 6px; } .curso-container h2 { font-size: 1.3em; } .form-btns { flex-direction: column; gap: 16px; width: 100%; } .btn-voltar, .btn-proximo { min-width: 100%; width: 100%; } }
-        @media (max-width: 600px) { .curso-container { padding: 18px 6px 12px 6px; } .curso-container h2 { font-size: 1.3em; } .form-btns { flex-direction: column; gap: 12px; width: 100%; } }
-    </style>
-</head>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '26419185324388434');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
-</head>
-<body>
-    <script src="/static/assistant.js"></script>
-    <script src="/static/assistant.js"></script>
-    <header class="main-header">
-        <div class="header-logos">
-            <img src="/static/logo_fgm.png" alt="Logo FGM" class="logo">
-            <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
-        </div>
-    </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #edeafd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-           <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 65%;"></div>
-    </div>
-    <div class="curso-container">
-        <div class="progress-bar">
-            <div class="progress"></div>
-        </div>
-        <h2>Escolha do Curso</h2>
-        <p class="curso-sub">Selecione o local, curso e turma de sua preferência</p>
-        <form id="form-curso" method="POST" action="/curso" autocomplete="off">
-            <div class="form-group">
-                <label for="local">Local *</label>
-                <select id="local" name="local" required>
-                    <option value="">Selecione o local</option>
-                    <option value="AMORIM">INSTITUIÇÃO ORIGEM AMORIM - MANGUINHOS</option>
-                    <option value="COSTA_MATOS">COZINHA COSTA MATOS - REALENGO</option>
-                    <option value="ESCOLHA_CERTA">COZINHA ESCOLHA CERTA - VILA VINTÉM - PADRE MIGUEL</option>
-                    <option value="ACREDITA">ASSOCIAÇÃO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA</option>
-                    <option value="ERNESTO_LOBAO">ERNESTO LOBÃO - MADUREIRA</option>
-                </select>
-                <!-- Campo oculto para o nome legível do local -->
-                <input type="hidden" id="local_nome_legivel" name="local_nome_legivel" value="" />
-            </div>
-            <div class="form-group">
-                <label for="curso">Curso *</label>
-                <select id="curso" name="curso" required>
-                    <option value="">Selecione o curso</option>
-                </select>
-                <!-- Campo oculto para o nome legível do curso -->
-                <input type="hidden" id="curso_nome_legivel" name="curso_nome_legivel" value="" />
-            </div>
-            <div class="form-group">
-                <label for="turma">Turma *</label>
-                <select id="turma" name="turma" required>
-                    <option value="">Selecione a turma</option>
-                </select>
-                <!-- Campo oculto para o nome legível da turma -->
-                <input type="hidden" id="turma_nome_legivel" name="turma_nome_legivel" value="" />
-            </div>
-            <div class="form-group">
-                <label for="dias_semana">Dias da Semana</label>
-                <input type="text" id="dias_semana" name="dias_semana" readonly />
-            </div>
-            <div class="form-group">
-                <label for="horario">Horário</label>
-                <input type="text" id="horario" name="horario" readonly />
-            </div>
-            <div class="form-group">
-                <label for="data_inicio">Data de Início</label>
-                <input type="text" id="data_inicio" name="data_inicio" readonly />
-            </div>
-            <div class="form-group">
-                <label for="encerramento">Encerramento</label>
-                <input type="text" id="encerramento" name="encerramento" readonly />
-            </div>
-            <div class="form-group">
-                <label for="endereco">Endereço</label>
-                <div style="display:flex;align-items:center;gap:8px;width:100%;max-width:380px;">
-                    <input type="text" id="endereco" name="endereco" readonly style="flex:1;min-width:0;" />
-                    <button type="button" id="btn-copiar-endereco" title="Copiar endereço" style="padding:6px 10px;border-radius:6px;border:none;background:#008ff0;color:#fff;cursor:pointer;font-size:1em;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;">
-                        <span style="font-size:1.1em;">&#128203;</span>
-                    </button>
-                </div>
-            </div>
-            <div class="form-btns" style="display:flex; flex-direction:column !important; gap:12px; width:100%; margin-top:24px;">
-                <button type="submit" class="btn-proximo">PRÓXIMO &rarr;</button>
-                <button type="button" class="btn-voltar" onclick="window.location.href='/inscricao'">&lt; VOLTAR</button>
-            </div>
-        </form>
-    </div>
-    <script>
-    // Estrutura de dados dos cursos, turmas, horários, datas, endereços
-    const cursosData = {
-        AMORIM: {
-            nome: 'INSTITUIÇÃO ORIGEM AMORIM - MANGUINHOS',
-            cursos: [{
-                id: 'SOBRANCELHAS',
-                nome: 'DESIGNER DE SOBRANCELHAS',
-                turmas: [{
-                    id: 'T1',
-                    nome: 'DESIGNER DE SOBRANCELHAS - TURMA 01',
-                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
-                    data_inicio: '13/04/2026',
-                    encerramento: '15/04/2026',
-                    endereco: 'Rua Castro Tavares, 156 - Manguinhos RJ'
-                }]
-            }]
-        },
-        COSTA_MATOS: {
-            nome: 'COZINHA COSTA MATOS - REALENGO',
-            cursos: [{
-                id: 'NAILS1',
-                nome: 'NAILS DESIGNER',
-                turmas: [{
-                    id: 'T2',
-                    nome: 'NAILS DESIGNER - TURMA 01',
-                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
-                    data_inicio: '13/04/2026',
-                    encerramento: '15/04/2026',
-                    endereco: 'Rua Capitão Teixeira, 583 - Realengo RJ'
-                }]
-            }]
-        },
-        ESCOLHA_CERTA: {
-            nome: 'COZINHA ESCOLHA CERTA - VILA VINTÉM - PADRE MIGUEL',
-            cursos: [{
-                id: 'CILIOS',
-                nome: 'EXTENSÃO DE CÍLIOS',
-                turmas: [{
-                    id: 'T3',
-                    nome: 'EXTENSÃO DE CÍLIOS - TURMA 03',
-                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
-                    data_inicio: '13/04/2026',
-                    encerramento: '15/04/2026',
-                    endereco: 'Travessa Santa Terezinha, 03 - Padre Miguel RJ'
-                }]
-            }]
-        },
-        ACREDITA: {
-            nome: 'ASSOCIAÇÃO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA',
-            cursos: [{
-                id: 'NAILS2',
-                nome: 'NAILS DESIGNER',
-                turmas: [{
-                    id: 'T4',
-                    nome: 'NAILS DESIGNER - TURMA 01',
-                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
-                    data_inicio: '27/04/2026',
-                    encerramento: '29/04/2026',
-                    endereco: 'Rua Padre Manso, 32 - Madureira RJ'
-                }]
-            }]
-        },
-        ERNESTO_LOBAO: {
-            nome: 'ERNESTO LOBÃO - MADUREIRA',
-            cursos: [{
-                id: 'TRANCISTA',
-                nome: 'TRANCISTA',
-                turmas: [{
-                    id: 'T5',
-                    nome: 'TRANCISTA - TURMA 03',
-                    horario: 'Segunda, Terça e Quarta | 09h até 17h',
-                    data_inicio: '27/04/2026',
-                    encerramento: '29/04/2026',
-                    endereco: 'Rua Ernesto Lobão n* 19, Madureira RJ'
-                }]
-            }]
-        }
-    };
 
-    const localSelect = document.getElementById('local');
-    const cursoSelect = document.getElementById('curso');
-    const turmaSelect = document.getElementById('turma');
-    const horarioInput = document.getElementById('horario');
-    const dataInicioInput = document.getElementById('data_inicio');
-    const encerramentoInput = document.getElementById('encerramento');
-    const enderecoInput = document.getElementById('endereco');
-    const btnCopiarEndereco = document.getElementById('btn-copiar-endereco');
-
-    function resetCursos() {
-        cursoSelect.innerHTML = '<option value="">Selecione o curso</option>';
-        resetCampos();
-    }
-    function resetCampos() {
-        turmaSelect.innerHTML = '<option value="">Selecione a turma</option>';
-        horarioInput.value = '';
-        dataInicioInput.value = '';
-        encerramentoInput.value = '';
-        enderecoInput.value = '';
-    }
-
-    localSelect.addEventListener('change', function() {
-        resetCursos();
-        const local = this.value;
-        // Atualiza campo oculto com o nome legível do local
-        const localNomeLegivelInput = document.getElementById('local_nome_legivel');
-        let localNomeLegivel = '';
-        if (local && cursosData[local]) {
-            localNomeLegivel = cursosData[local].nome;
-            cursosData[local].cursos.forEach(function(curso) {
-                const opt = document.createElement('option');
-                opt.value = curso.id;
-                opt.textContent = curso.nome;
-                cursoSelect.appendChild(opt);
-            });
-        }
-        if (localNomeLegivelInput) localNomeLegivelInput.value = localNomeLegivel;
-    });
-
-    cursoSelect.addEventListener('change', function() {
-        resetCampos();
-        const local = localSelect.value;
-        const cursoId = this.value;
-        // Atualiza campo oculto com o nome legível do curso
-        const cursoNomeLegivelInput = document.getElementById('curso_nome_legivel');
-        let cursoNomeLegivel = '';
-        if (local && cursoId && cursosData[local]) {
-            const curso = cursosData[local].cursos.find(c => c.id === cursoId);
-            if (curso) {
-                cursoNomeLegivel = curso.nome;
-                curso.turmas.forEach(function(turma) {
-                    const opt = document.createElement('option');
-                    opt.value = turma.id;
-                    opt.textContent = turma.nome;
-                    turmaSelect.appendChild(opt);
-                });
-            }
-        }
-        if (cursoNomeLegivelInput) cursoNomeLegivelInput.value = cursoNomeLegivel;
-    });
-
-    turmaSelect.addEventListener('change', function() {
-        const local = localSelect.value;
-        const cursoId = cursoSelect.value;
-        const turmaId = this.value;
-        // Atualiza campo oculto com o nome legível da turma
-        const turmaNomeLegivelInput = document.getElementById('turma_nome_legivel');
-        let turmaNomeLegivel = '';
-        const diasSemanaInput = document.getElementById('dias_semana');
-        const horarioInput = document.getElementById('horario');
-        if (local && cursoId && turmaId && cursosData[local]) {
-            const curso = cursosData[local].cursos.find(c => c.id === cursoId);
-            if (curso) {
-                const turma = curso.turmas.find(t => t.id === turmaId);
-                if (turma) {
-                    // Separar dias da semana e horário
-                    let dias = '';
-                    let horario = '';
-                    if (turma.horario && turma.horario.includes('|')) {
-                        const partes = turma.horario.split('|');
-                        dias = partes[0].trim();
-                        horario = partes[1].trim();
-                    } else {
-                        dias = turma.horario;
-                    }
-                    if (diasSemanaInput) diasSemanaInput.value = dias;
-                    if (horarioInput) horarioInput.value = horario;
-                    dataInicioInput.value = turma.data_inicio;
-                    encerramentoInput.value = turma.encerramento;
-                    enderecoInput.value = turma.endereco;
-                    turmaNomeLegivel = turma.nome;
-                }
-            }
-        }
-        if (turmaNomeLegivelInput) turmaNomeLegivelInput.value = turmaNomeLegivel;
-    });
-
-    if (btnCopiarEndereco && enderecoInput) {
-        btnCopiarEndereco.addEventListener('click', function() {
-            enderecoInput.select();
-            enderecoInput.setSelectionRange(0, 99999); // Para mobile
-            try {
-                document.execCommand('copy');
-                btnCopiarEndereco.innerHTML = '<span style="font-size:1.1em;">&#10003;</span>';
-                setTimeout(() => {
-                    btnCopiarEndereco.innerHTML = '<span style="font-size:1.1em;">&#128203;</span>';
-                }, 1200);
-            } catch (e) {
-                btnCopiarEndereco.innerHTML = 'Erro';
-                setTimeout(() => {
-                    btnCopiarEndereco.innerHTML = '<span style="font-size:1.1em;">&#128203;</span>';
-                }, 1200);
-            }
-        });
-    }
-    </script>
-</body>
-</html>
-'''
-TEMPLATE_INSCRICAO = '''
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscrição</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/assistant.css">
-    <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        html, body {
-            height: 100%;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-        html, body {
-            min-height: 100vh;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            min-height: 100vh;
-            min-height: 100svh;
-            height: 100%;
-            width: 100vw;
-            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
-            font-family: 'Wise', 'Segoe UI', Arial, sans-serif;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
-        .inscricao-container {
-            max-width: 480px;
-            margin: 48px auto 0 auto;
+        .wizard-label {
+            padding: 12px 10px;
+            border: 1px solid #c5e6ff;
+            border-radius: 18px;
             background: #fff;
-            border-radius: 32px;
-            box-shadow: 0 8px 40px #008ff022, 0 1.5px 8px #008ff011;
-            border-top: 4px solid #008ff0;
-            padding: 48px 36px 36px 36px;
-            text-align: center;
-            position: relative;
-        }
-        .inscricao-numero {
-            color: #008ff0;
+            color: #2e6288;
+            font-size: 0.92rem;
             font-weight: 700;
-            margin-bottom: 10px;
-            font-size: 1.08em;
-        }
-        .inscricao-container {
-            max-width: 480px;
-            margin: 48px auto 0 auto;
-            background: #fff;
-            border-radius: 32px;
-            box-shadow: 0 8px 40px rgba(222,37,75,0.13), 0 1.5px 8px #de254b22;
-            padding: 48px 36px 36px 36px;
             text-align: center;
-            position: relative;
+            transition: all 0.25s ease;
         }
-        .main-header {
-            border-bottom: 4px solid #008ff0;
+
+        .wizard-label.ativo {
+            border-color: var(--cor-principal);
+            background: var(--cor-clara);
+            color: var(--cor-principal);
+            box-shadow: 0 8px 20px rgba(0, 143, 240, 0.14);
         }
-            margin-bottom: 28px;
+
+        .wizard-shell {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 34px;
+            box-shadow: var(--sombra-card);
+            overflow: hidden;
         }
-        .inscricao-container form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-        .form-group {
-            margin-bottom: 18px;
-            text-align: left;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .form-group label {
-            font-weight: 600;
-            color: #008ff0 !important;
-            margin-bottom: 7px;
-            font-size: 1.09em;
-            display: block;
-            width: 100%;
-            max-width: 340px;
-        }
-        .inscricao-container input, .inscricao-container select {
-            border: 1.5px solid #008ff0 !important;
-            color: #008ff0 !important;
-            background: #e6f4fd;
-            box-shadow: 0 2px 12px #008ff022;
-            transition: border 0.2s, box-shadow 0.2s;
-            border-radius: 14px;
-            padding: 13px 18px;
-            font-size: 1.09em;
-            font-family: 'Wise', Arial, sans-serif;
-            outline: none;
-            appearance: none;
-            width: 100%;
-            max-width: 380px;
+
+        .wizard-panel[data-step="index"] .hero-card,
+        .wizard-panel[data-step="dados"] .step-card,
+        .wizard-panel[data-step="escolher"] .step-card,
+        .wizard-panel[data-step="revisao"] .step-card {
+            max-width: 760px;
             margin: 0 auto;
+        }
+
+        .wizard-panel {
+            display: none;
+            padding: 18px 8px 18px 8px;
+            animation: surgir 0.28s ease;
+        }
+
+        .wizard-panel.ativo {
             display: block;
         }
-        .inscricao-container input:focus, .inscricao-container select:focus {
-            border: 2px solid #008ff0;
-            box-shadow: 0 4px 16px #008ff033;
+
+        @keyframes surgir {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .hero-card {
+            padding: 32px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #fff 0%, #f5fbff 58%, #d9efff 100%);
+            border: 1px solid #c5e6ff;
+            width: 100%;
+            text-align: center;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: var(--cor-principal);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero-title,
+        .panel-title {
+            margin: 18px 0 10px;
+            color: var(--cor-principal);
+            font-size: clamp(2rem, 3.8vw, 3.2rem);
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+
+        .panel-title {
+            font-size: clamp(1.7rem, 3vw, 2.4rem);
+        }
+
+        .hero-subtitle,
+        .panel-subtitle {
+            margin: 0;
+            color: #2e6288;
+            font-size: 1.05rem;
+            line-height: 1.55;
+        }
+
+        .hero-highlights {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .hero-highlight,
+        .info-card,
+        .review-box,
+        .step-card {
+            border-radius: 22px;
+            border: 1px solid #d0ebff;
             background: #fff;
+            box-shadow: 0 8px 24px rgba(0, 143, 240, 0.08);
         }
-        .inscricao-container input::placeholder {
-            color: #008ff0;
-            opacity: 1;
+
+        .hero-highlight {
+            padding: 12px 14px;
+            color: #2c6e9c;
+            font-size: 0.95rem;
+            font-weight: 700;
         }
-        .inscricao-container select {
+
+        .hero-highlight strong {
+            display: block;
+            color: var(--cor-principal);
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+
+        .timeline-card {
+            padding: 14px 10px;
+            background: linear-gradient(180deg, #008ff0 0%, #42b8ff 100%);
+            color: #fff;
+        }
+
+        .timeline-card h2 {
+            margin: 0 0 14px;
+            font-size: 1.5rem;
+        }
+
+        .timeline-list {
+            display: grid;
+            gap: 12px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .timeline-list li {
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 0.98rem;
+            line-height: 1.45;
+        }
+
+        .timeline-list strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 1rem;
+        }
+
+        .step-card {
+            padding: 18px 16px;
+            width: 100%;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 12px;
+            margin-top: 10px;
+            align-items: start;
+            justify-content: center;
+        }
+
+        .step-grid.step-grid--single {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: 760px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .step-grid.step-grid--stacked {
+            grid-template-columns: minmax(0, 1fr);
+            max-width: 540px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .wizard-panel[data-step="dados"] .form-group,
+        .wizard-panel[data-step="escolher"] .form-group {
+            align-items: stretch;
+            text-align: left;
+        }
+
+        .wizard-panel[data-step="dados"] .form-group label,
+        .wizard-panel[data-step="escolher"] .form-group label {
+            width: 100%;
+            text-align: left;
+        }
+
+        .wizard-panel[data-step="escolher"] .step-grid.step-grid--stacked {
+            max-width: 470px;
+        }
+
+        .wizard-panel[data-step="escolher"] .form-group,
+        .wizard-panel[data-step="escolher"] .form-group.full {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .wizard-panel[data-step="escolher"] .input-with-action {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .wizard-panel[data-step="escolher"] #local,
+        .wizard-panel[data-step="escolher"] #curso,
+        .wizard-panel[data-step="escolher"] #turma,
+        .wizard-panel[data-step="escolher"] #dias_aula,
+        .wizard-panel[data-step="escolher"] #horario,
+        .wizard-panel[data-step="escolher"] #data_inicio,
+        .wizard-panel[data-step="escolher"] #encerramento,
+        .wizard-panel[data-step="escolher"] #endereco_curso {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        .wizard-panel[data-step="escolher"] .form-group.full:last-child {
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+            align-self: start;
+            align-items: center;
+            text-align: center;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label,
+        .review-title,
+        .mini-title {
+            color: var(--cor-principal);
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            display: block;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box;
+            min-height: 38px;
+            height: 38px;
+            padding: 7px 10px;
+            border: 1.2px solid var(--cor-borda);
+            border-radius: 10px;
+            background: #f2f9ff;
+            color: var(--cor-texto);
+            font: inherit;
+            line-height: 1.2;
+            text-align: left;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .form-group select {
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
             background-image: url('data:image/svg+xml;utf8,<svg fill="%23008ff0" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
             background-repeat: no-repeat;
             background-position: right 14px center;
-            background-size: 22px 22px;
-            width: 100% !important;
-            max-width: 380px !important;
+            background-size: 20px 20px;
+            padding-right: 44px;
         }
-        .balao-erro {
-            display: block;
-            position: relative;
-            background: #e53935;
+
+        .form-group textarea {
+            min-height: 60px;
+            height: auto;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--cor-principal);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(0, 143, 240, 0.12);
+        }
+
+        .readonly-field {
+            background: #eaf6ff !important;
+            color: #2c6e9c !important;
+            font-weight: 700;
+        }
+
+        .input-with-action {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 10px;
+            align-items: stretch;
+            justify-content: stretch;
+        }
+
+        .input-with-action input {
+            width: 100% !important;
+        }
+
+        .icon-button,
+        .cta-button,
+        .secondary-button,
+        .submit-button {
+            border: none;
+            border-radius: 18px;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, color 0.16s ease;
+        }
+
+        .icon-button {
+            min-width: 56px;
+            min-height: 52px;
+            background: var(--cor-principal);
             color: #fff;
-            border: 2px solid #b71c1c;
-            border-radius: 16px 16px 16px 0px;
-            padding: 10px 16px;
-            font-size: 1em;
-            font-weight: 600;
-            box-shadow: 0 4px 16px #b71c1c33;
+            box-shadow: 0 8px 16px rgba(0, 143, 240, 0.22);
+        }
+
+        .wizard-panel[data-step="escolher"] .icon-button {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: none;
+        }
+
+        .panel-actions .cta-button,
+        .panel-actions .secondary-button,
+        .panel-actions .submit-button {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            height: 38px;
+            font-size: 1rem;
+        }
+
+        .cta-button,
+        .submit-button {
+            background: linear-gradient(90deg, #008ff0 0%, #42b8ff 100%);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(0, 143, 240, 0.24);
+        }
+
+        .secondary-button {
+            background: #fff;
+            color: var(--cor-principal);
+            border: 2px solid var(--cor-principal);
+        }
+
+        .cta-button,
+        .secondary-button,
+        .submit-button {
+            min-height: 54px;
+            padding: 14px 22px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .cta-button:hover,
+        .secondary-button:hover,
+        .submit-button:hover,
+        .icon-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .panel-actions {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 12px;
+            justify-content: space-between;
+            margin-top: 28px;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .panel-actions > * {
+            flex: 1;
+        }
+
+        .helper-text {
+            margin: 0;
+            color: #2c6e9c;
+            font-size: 0.94rem;
+            line-height: 1.5;
+        }
+
+        .balao-erro {
+            margin-top: 4px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid #006fc2;
+            background: #008ff0;
+            color: #fff;
+            font-size: 0.92rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .balao-erro[hidden] {
+            display: none;
+        }
+
+        .erro-campo {
+            border-color: #006fc2 !important;
+            box-shadow: 0 0 0 4px rgba(0, 111, 194, 0.12) !important;
+        }
+
+        .review-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            max-width: 540px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .review-box {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .review-box.full {
+            grid-column: 1 / -1;
+        }
+
+        .review-list {
+            display: grid;
+            gap: 6px;
             margin-top: 8px;
-            max-width: 340px;
             text-align: left;
         }
-        .balao-erro::after {
-            content: '';
-            position: absolute;
-            left: 24px;
-            bottom: 100%;
-            width: 0;
-            height: 0;
-            border-bottom: 12px solid #e53935;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
+
+        .review-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            column-gap: 8px;
+            padding: 7px 9px;
+            border-radius: 10px;
+            background: var(--cor-clara);
+            text-align: left;
         }
-        .form-group label {
-            font-weight: 600;
-            color: #1155cc;
-            margin-bottom: 7px;
-            font-size: 1.09em;
-            display: block;
-            width: 100%;
-            max-width: 400px;
+
+        .review-item strong {
+            color: var(--cor-principal);
+            font-size: 0.88rem;
+            white-space: nowrap;
         }
-        .inscricao-container input, .inscricao-container select {
-            color: #111 !important;
-            border: 1.5px solid #b3a0d7;
-            color: #222;
-            background: #f7faff;
-            box-shadow: 0 2px 12px #b3a0d722;
-            transition: border 0.2s, box-shadow 0.2s;
+
+        .review-item strong::after {
+            content: ':';
+        }
+
+        .review-item span {
+            color: var(--cor-texto);
+            font-size: 0.94rem;
+            word-break: break-word;
+            text-align: left;
+        }
+
+        .review-check {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 10px 12px;
             border-radius: 14px;
-            padding: 13px 18px;
-            font-size: 1.09em;
-            font-family: 'Wise', Arial, sans-serif;
-            outline: none;
-            appearance: none;
-            width: 100%;
-            max-width: 400px;
-            min-width: 220px;
-            margin: 0 auto;
-            display: block;
+            background: var(--cor-clara);
+            color: #1f4f73;
+            line-height: 1.45;
+            text-align: left;
         }
-        .inscricao-container select {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%231155cc" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            background-size: 22px 22px;
+
+        .review-check input {
+                margin-top: 3px;
+                width: 20px;
+                min-width: 20px;
+                height: 20px;
+                flex: 0 0 20px;
+            accent-color: var(--cor-principal);
         }
+
+            .review-check span {
+                flex: 1 1 auto;
+                min-width: 0;
             }
-            .form-btns {
+
+        .review-check ul {
+            margin: 8px 0 0 18px;
+            padding: 0;
+            list-style-position: outside;
+            text-align: left;
+        }
+
+        .review-box .form-group {
+            align-items: stretch;
+            text-align: left;
+        }
+
+        .review-box .form-group label {
+            width: 100%;
+            text-align: left;
+        }
+
+        .mini-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+            justify-content: center;
+        }
+
+        .mini-badge {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--cor-clara);
+            color: var(--cor-principal);
+            font-size: 0.86rem;
+            font-weight: 800;
+        }
+
+        .footer-note {
+            margin-top: 14px;
+            color: #2c6e9c;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @media (max-width: 860px) {
+            .hero-grid,
+            .review-layout {
+                grid-template-columns: 1fr;
+            }
+            .step-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px 8px;
+            }
+            .step-grid.step-grid--single {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .step-grid.step-grid--stacked {
+                grid-template-columns: minmax(0, 1fr);
+                max-width: 540px;
+            }
+            .wizard-panel[data-step="escolher"] .step-grid.step-grid--stacked {
+                max-width: 470px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            html,
+            body {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+
+            body * {
+                min-width: 0;
+            }
+
+            body {
+                overflow-x: hidden;
+            }
+
+            .main-header {
+                padding: 10px 12px;
+            }
+
+            .header-logos {
                 display: flex;
-                flex-direction: row;
-                justify-content: space-between;
+                flex-direction: column;
                 align-items: center;
-                margin-top: 24px;
-                gap: 18px;
+                gap: 10px;
+            }
+
+            .header-logos img,
+            .logo,
+            .logo-prefeitura-topo {
+                max-width: min(88vw, 280px);
+                height: auto;
+            }
+
+            .wizard-page {
+                width: calc(100% - 8px) !important;
+                max-width: 100% !important;
+                padding: 4px 0 10px;
+            }
+            .wizard-progress,
+            .wizard-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 8px;
+            }
+            .wizard-labels {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .hero-card,
+            .timeline-card,
+            .step-card,
+            .review-box {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 8px;
+            }
+            .input-with-action {
+                grid-template-columns: minmax(0, 1fr) 48px;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .panel-actions > * {
                 width: 100%;
             }
-            .btn-voltar, .btn-proximo {
-                min-width: 180px;
-                min-height: 48px;
-                padding: 16px 36px;
-                font-size: 1.18em;
-                font-weight: 800;
-                border-radius: 18px;
-                border: none;
-                box-shadow: 0 2px 12px #008ff033;
-                letter-spacing: 0.5px;
-                transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-                outline: none;
-                text-transform: uppercase;
-                display: inline-block;
-                background: #008ff0;
-                color: #fff;
-                cursor: pointer;
+            .step-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px 6px;
             }
-            .btn-voltar {
-                background: #fff;
-                color: #008ff0;
-                border: 2px solid #008ff0;
+            .step-grid.step-grid--single {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
-            .btn-proximo {
-                background: #008ff0;
-                color: #fff;
-                border: 2px solid #008ff0;
+            .step-grid.step-grid--stacked {
+                grid-template-columns: minmax(0, 1fr);
+                max-width: 100%;
             }
-            .btn-proximo:hover, .btn-voltar:hover {
-                background: #008ff0;
-                color: #fff;
-                box-shadow: 0 6px 24px #008ff044;
-                transform: translateY(-2px) scale(1.04);
+            .review-layout {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+                gap: 10px;
             }
-            @media (max-width: 600px) {
-                .inscricao-container {
-                    padding: 18px 6px 12px 6px;
-                }
-                .inscricao-container h2 {
-                    font-size: 1.3em;
-                }
-                .form-btns {
-                    flex-direction: column;
-                    gap: 16px;
-                    width: 100%;
-                }
-                .btn-voltar, .btn-proximo {
-                    min-width: 100%;
-                    width: 100%;
-                }
+            .review-item,
+            .form-group,
+            .form-group input,
+            .form-group select,
+            .form-group textarea,
+            .wizard-shell,
+            .panel-actions,
+            .review-check,
+            .balao-erro {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .form-group label,
+            .review-title,
+            .mini-title,
+            .helper-text,
+            .review-item span,
+            .review-check {
+                word-break: break-word;
+            }
+            img,
+            svg {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            .form-group input,
+            .form-group select,
+            .form-group textarea,
+            .icon-button {
+                min-height: 32px;
+                height: 32px;
+                font-size: 0.98em;
+            }
+            .form-group textarea {
+                min-height: 60px;
+                height: auto;
+            }
+            .review-check {
+                flex-direction: row;
+                align-items: flex-start;
+                padding: 8px;
+            }
+
+            .review-check input {
+                width: 22px;
+                min-width: 22px;
+                height: 22px;
+                flex-basis: 22px;
+            }
+
+            .review-check ul {
+                padding-left: 2px;
+            }
+            .hero-title,
+            .panel-title {
+                font-size: 1.3rem;
+            }
+            .hero-subtitle,
+            .panel-subtitle {
+                font-size: 0.92rem;
+            }
+            .wizard-shell {
+                border-radius: 16px;
+            }
+
+            .form-group.full {
+                grid-column: auto;
             }
         }
     </style>
+    {{ meta_pixel|safe }}
 </head>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '26419185324388434');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
-</head>
-<body>
+<body data-start-step="{{ current_step }}">
     <script src="/static/assistant.js"></script>
-    <script src="/static/assistant.js"></script>
-    <script>
-    // Validação visual de CPF, Email e Idade mínima
-    document.addEventListener('DOMContentLoaded', function() {
-        var cpfInput = document.getElementById('cpf');
-        var emailInput = document.getElementById('email');
-        var nascInput = document.getElementById('nascimento');
-        var form = document.getElementById('form-inscricao');
-        // CPF
-        if (cpfInput && form) {
-            let erroDiv = document.getElementById('cpf-balao-erro');
-            if (!erroDiv) {
-                erroDiv = document.createElement('div');
-                erroDiv.className = 'balao-erro';
-                erroDiv.id = 'cpf-balao-erro';
-                cpfInput.parentNode.appendChild(erroDiv);
-            }
-            erroDiv.style.display = 'none';
-
-            function validarCPF(cpf) {
-                cpf = cpf.replace(/\D/g, '');
-                if (cpf.length !== 11 || /^([0-9])\1+$/.test(cpf)) return false;
-                let soma = 0;
-                for (let i = 0; i < 9; i++) soma += parseInt(cpf.charAt(i)) * (10 - i);
-                let digito1 = (soma * 10) % 11;
-                if (digito1 === 10) digito1 = 0;
-                if (digito1 !== parseInt(cpf.charAt(9))) return false;
-                soma = 0;
-                for (let i = 0; i < 10; i++) soma += parseInt(cpf.charAt(i)) * (11 - i);
-                let digito2 = (soma * 10) % 11;
-                if (digito2 === 10) digito2 = 0;
-                if (digito2 !== parseInt(cpf.charAt(10))) return false;
-                return true;
-            }
-
-            function mostrarErroCPF(msg) {
-                erroDiv.textContent = msg;
-                erroDiv.style.display = 'block';
-                cpfInput.classList.add('erro-campo');
-            }
-            function esconderErroCPF() {
-                erroDiv.textContent = '';
-                erroDiv.style.display = 'none';
-                cpfInput.classList.remove('erro-campo');
-            }
-
-            cpfInput.addEventListener('input', function() {
-                if (cpfInput.value.replace(/\D/g, '').length === 11) {
-                    if (!validarCPF(cpfInput.value)) {
-                        mostrarErroCPF('CPF inválido. Verifique e digite novamente.');
-                    } else {
-                        esconderErroCPF();
-                    }
-                } else {
-                    esconderErroCPF();
-                }
-            });
-
-            form.addEventListener('submit', function(e) {
-                if (!validarCPF(cpfInput.value)) {
-                    mostrarErroCPF('CPF inválido. Verifique e digite novamente.');
-                    cpfInput.focus();
-                    e.preventDefault();
-                } else {
-                    esconderErroCPF();
-                }
-            });
-        }
-        // EMAIL
-        if (emailInput && form) {
-            let erroDivEmail = document.getElementById('email-balao-erro');
-            if (!erroDivEmail) {
-                erroDivEmail = document.createElement('div');
-                erroDivEmail.className = 'balao-erro';
-                erroDivEmail.id = 'email-balao-erro';
-                emailInput.parentNode.appendChild(erroDivEmail);
-            }
-            erroDivEmail.style.display = 'none';
-
-            function validarEmail(email) {
-                // Aceita apenas gmail, hotmail, outlook, yahoo
-                var re = /^[a-zA-Z0-9_.+-]+@((gmail|hotmail|outlook|yahoo)\.(com|com\.br))$/i;
-                return re.test(email.trim());
-            }
-            function mostrarErroEmail(msg) {
-                erroDivEmail.textContent = msg;
-                erroDivEmail.style.display = 'block';
-                emailInput.classList.add('erro-campo');
-            }
-            function esconderErroEmail() {
-                erroDivEmail.textContent = '';
-                erroDivEmail.style.display = 'none';
-                emailInput.classList.remove('erro-campo');
-            }
-            emailInput.addEventListener('input', function() {
-                if (emailInput.value.length > 0) {
-                    if (!validarEmail(emailInput.value)) {
-                        mostrarErroEmail('Digite um e-mail válido do Gmail, Hotmail, Outlook ou Yahoo.');
-                    } else {
-                        esconderErroEmail();
-                    }
-                } else {
-                    esconderErroEmail();
-                }
-            });
-            form.addEventListener('submit', function(e) {
-                if (!validarEmail(emailInput.value)) {
-                    mostrarErroEmail('Digite um e-mail válido do Gmail, Hotmail, Outlook ou Yahoo.');
-                    emailInput.focus();
-                    e.preventDefault();
-                } else {
-                    esconderErroEmail();
-                }
-            });
-        }
-        // IDADE MÍNIMA 16 ANOS
-        if (nascInput && form) {
-            let erroDivNasc = document.getElementById('nascimento-balao-erro');
-            if (!erroDivNasc) {
-                erroDivNasc = document.createElement('div');
-                erroDivNasc.className = 'balao-erro';
-                erroDivNasc.id = 'nascimento-balao-erro';
-                nascInput.parentNode.appendChild(erroDivNasc);
-            }
-            erroDivNasc.style.display = 'none';
-
-            function idadeMinima16(nascStr) {
-                // Aceita dd/mm/aaaa
-                var partes = nascStr.split('/');
-                if (partes.length !== 3) return false;
-                var dia = parseInt(partes[0], 10);
-                var mes = parseInt(partes[1], 10) - 1;
-                var ano = parseInt(partes[2], 10);
-                var nascDate = new Date(ano, mes, dia);
-                if (isNaN(nascDate.getTime())) return false;
-                var hoje = new Date();
-                var idade = hoje.getFullYear() - nascDate.getFullYear();
-                var m = hoje.getMonth() - nascDate.getMonth();
-                if (m < 0 || (m === 0 && hoje.getDate() < nascDate.getDate())) {
-                    idade--;
-                }
-                return idade >= 16 && idade <= 90;
-            }
-            function mostrarErroNasc(msg) {
-                erroDivNasc.textContent = msg;
-                erroDivNasc.style.display = 'block';
-                nascInput.classList.add('erro-campo');
-            }
-            function esconderErroNasc() {
-                erroDivNasc.textContent = '';
-                erroDivNasc.style.display = 'none';
-                nascInput.classList.remove('erro-campo');
-            }
-            nascInput.addEventListener('blur', function() {
-                if (nascInput.value.length === 10) {
-                    if (!idadeMinima16(nascInput.value)) {
-                        mostrarErroNasc('Idade permitida: de 16 até 90 anos');
-                    } else {
-                        esconderErroNasc();
-                    }
-                } else {
-                    esconderErroNasc();
-                }
-            });
-            form.addEventListener('submit', function(e) {
-                if (!idadeMinima16(nascInput.value)) {
-                    mostrarErroNasc('Idade permitida: de 16 até 90 anos');
-                    nascInput.focus();
-                    e.preventDefault();
-                } else {
-                    esconderErroNasc();
-                }
-            });
-        }
-    });
-    </script>
-    <script>
-    // Máscara para CPF
-    document.addEventListener('DOMContentLoaded', function() {
-        var cpf = document.getElementById('cpf');
-        if (cpf) {
-            cpf.addEventListener('input', function(e) {
-                let v = cpf.value.replace(/\D/g, '');
-                if (v.length > 11) v = v.slice(0,11);
-                let r = '';
-                if (v.length > 9) r = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-                else if (v.length > 6) r = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-                else if (v.length > 3) r = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-                else r = v;
-                cpf.value = r;
-            });
-        }
-        // Máscara para Data de Nascimento
-        var nasc = document.getElementById('nascimento');
-        if (nasc) {
-            nasc.addEventListener('input', function(e) {
-                let v = nasc.value.replace(/\D/g, '');
-                if (v.length > 8) v = v.slice(0,8);
-                let r = '';
-                if (v.length > 4) r = v.replace(/(\d{2})(\d{2})(\d{1,4})/, '$1/$2/$3');
-                else if (v.length > 2) r = v.replace(/(\d{2})(\d{1,2})/, '$1/$2');
-                else r = v;
-                nasc.value = r;
-            });
-        }
-        // Máscara para WhatsApp e validação de DDD
-        var wpp = document.getElementById('whatsapp');
-        if (wpp) {
-            wpp.addEventListener('input', function(e) {
-                let v = wpp.value.replace(/\D/g, '');
-                // Impede digitar DDD 55
-                if (v.length >= 2 && v.substring(0,2) === '55') {
-                    v = v.substring(2); // Remove o DDD proibido
-                }
-                if (v.length > 11) v = v.slice(0,11);
-                let r = '';
-                if (v.length > 6) r = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
-                else if (v.length > 2) r = v.replace(/(\d{2})(\d{1,5})/, '($1) $2');
-                else r = v;
-                wpp.value = r;
-                // Mensagem de erro visual se tentar digitar
-                let erroDivWpp = document.getElementById('whatsapp-balao-erro');
-                if (!erroDivWpp) {
-                    erroDivWpp = document.createElement('div');
-                    erroDivWpp.className = 'balao-erro';
-                    erroDivWpp.id = 'whatsapp-balao-erro';
-                    wpp.parentNode.appendChild(erroDivWpp);
-                }
-                erroDivWpp.style.display = 'none';
-                if (wpp.value.startsWith('(55')) {
-                    erroDivWpp.textContent = 'O DDD 55 não é permitido.';
-                    erroDivWpp.style.display = 'block';
-                    wpp.classList.add('erro-campo');
-                } else {
-                    erroDivWpp.textContent = '';
-                    erroDivWpp.style.display = 'none';
-                    wpp.classList.remove('erro-campo');
-                }
-            });
-        }
-    });
-    </script>
     <header class="main-header">
         <div class="header-logos">
             <img src="/static/logo_fgm.png" alt="Logo FGM" class="logo">
             <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
         </div>
     </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f4fd; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-        <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 45%;"></div>
-    </div>
-    <div class="inscricao-container">
-        <div class="progress-bar">
-            <div class="progress" style="width: 33%;"></div>
+
+    <div class="wizard-page">
+        <div class="wizard-progress">
+            <div class="wizard-track">
+                <div class="wizard-fill" id="wizard-fill"></div>
+            </div>
+            <div class="wizard-labels">
+                <div class="wizard-label" data-step-label="index">1. Início</div>
+                <div class="wizard-label" data-step-label="dados">2. Dados pessoais</div>
+                <div class="wizard-label" data-step-label="escolher">3. Escolher</div>
+                <div class="wizard-label" data-step-label="revisao">4. Revisão</div>
+            </div>
         </div>
-        <h2 style="color: #008ff0 !important; text-shadow: none !important; background: none !important;">Dados Pessoais</h2>
-        <p class="inscricao-sub">Preencha seus dados para começarmos sua inscrição</p>
-        <form id="form-inscricao" method="POST" action="/inscricao" autocomplete="off">
-            <div class="form-group">
-                <label for="nome">Nome Completo *</label>
-                <input type="text" id="nome" name="nome" placeholder="Digite seu nome completo" required maxlength="50" pattern="[A-Za-zÀ-ÿ '´`^~.-]+">
-                {% if erro_nome %}
-                <div class="balao-erro" id="nome-balao-erro">{{ erro_nome }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="genero">Gênero *</label>
-                <select id="genero" name="genero" required>
-                    <option value="">Selecione</option>
-                    <option value="Feminino">Feminino</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Outro">Outro</option>
-                    <option value="Prefiro não dizer">Prefiro não dizer</option>
-                </select>
-                {% if erro_genero %}
-                <div class="balao-erro" id="genero-balao-erro">{{ erro_genero }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="cpf">CPF *</label>
-                <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" title="Digite um CPF válido">
-                {% if erro_cpf %}
-                <div class="balao-erro" id="cpf-balao-erro">{{ erro_cpf }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="nascimento">Data de Nascimento *</label>
-                <input type="text" id="nascimento" name="nascimento" placeholder="dd/mm/aaaa" required maxlength="10" pattern="\d{2}/\d{2}/\d{4}">
-                {% if erro_nascimento %}
-                <div class="balao-erro" id="nascimento-balao-erro">{{ erro_nascimento }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="whatsapp">WhatsApp *</label>
-                <input type="text" id="whatsapp" name="whatsapp" placeholder="(00) 00000-0000" required maxlength="16" pattern="\(\d{2}\) \d{5}-\d{4}">
-                {% if erro_whatsapp %}
-                <div class="balao-erro" id="whatsapp-balao-erro">{{ erro_whatsapp }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="cep">CEP *</label>
-                <input type="text" id="cep" name="cep" placeholder="00000-000" required maxlength="9" pattern="\d{5}-\d{3}">
-                <script>
-                // Máscara automática e busca de bairro pelo CEP
-                document.addEventListener('DOMContentLoaded', function() {
-                    var cepInput = document.getElementById('cep');
-                    var bairroInput = document.getElementById('bairro');
-                    if (cepInput && bairroInput) {
-                        cepInput.addEventListener('input', function(e) {
-                            let v = cepInput.value.replace(/\D/g, '');
-                            if (v.length > 8) v = v.slice(0,8);
-                            let r = '';
-                            if (v.length > 5) r = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-                            else r = v;
-                            cepInput.value = r;
-                            // Limpa o bairro sempre que o CEP muda
-                            bairroInput.value = '';
-                            // Quando o CEP estiver completo, busca o bairro
-                            if (v.length === 8) {
-                                fetch('https://viacep.com.br/ws/' + v + '/json/')
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (!data.erro && data.bairro) {
-                                            bairroInput.value = data.bairro;
-                                        } else {
-                                            bairroInput.value = '';
-                                        }
-                                    })
-                                    .catch(() => { bairroInput.value = ''; });
-                            }
-                        });
-                    }
-                });
-                </script>
-                            <script>
-                            // Máscara automática para CEP (00000-000)
-                            document.addEventListener('DOMContentLoaded', function() {
-                                var cepInput = document.getElementById('cep');
-                                if (cepInput) {
-                                    cepInput.addEventListener('input', function(e) {
-                                        let v = cepInput.value.replace(/\D/g, '');
-                                        if (v.length > 8) v = v.slice(0,8);
-                                        let r = '';
-                                        if (v.length > 5) r = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-                                        else r = v;
-                                        cepInput.value = r;
-                                    });
-                                }
-                            });
-                            </script>
-            </div>
-            <div class="form-group">
-                <label for="bairro">Bairro *</label>
-                <input type="text" id="bairro" name="bairro" placeholder="Nome do bairro" required maxlength="40">
-            </div>
-            <div class="form-group">
-                <label for="email">E-mail *</label>
-                <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com" required maxlength="60" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" title="Digite um e-mail válido">
-                {% if erro_email %}
-                <div class="balao-erro" id="email-balao-erro">{{ erro_email }}</div>
-                {% endif %}
-            </div>
-            <div class="form-btns" style="display:flex; flex-direction:column !important; gap:12px; width:100%; margin-top:24px;">
-                <button type="submit" class="btn-proximo">PRÓXIMO &rarr;</button>
-                <button type="button" class="btn-voltar" onclick="window.location.href='/'">&lt; VOLTAR</button>
-            </div>
-        </form>
+
+        <div class="wizard-shell">
+            <form id="wizard-form" method="POST" action="{{ url_for('inscricao_unica') }}" autocomplete="off" novalidate>
+                <section class="wizard-panel" data-step="index">
+                    <div class="hero-grid">
+                        <div class="hero-card">
+                            <span class="hero-pill">PROGRAMA: RIO + ELAS</span>
+                            <h1 class="hero-title">TRANSFORME SUA VIDA ATRAVÉS DA BELEZA!</h1>
+                            <p class="hero-subtitle">
+                                Cursos de qualificação profissional oferecidos pela Prefeitura do Rio de Janeiro.<br>
+                                Invista no seu futuro sem gastar nada!
+                            </p>
+                            <div class="hero-highlights">
+                                <div class="hero-highlight">
+                                    <strong>CURSOS DISPONÍVEIS</strong>
+                                    Trancista, Nails Designer, Designer de Sobrancelhas, Extensão de Cílios, Manicure e Pedicure Simples.
+                                </div>
+                                <div class="hero-highlight">
+                                    <strong>BENEFÍCIOS</strong>
+                                    100% gratuito, certificado de conclusão, material didático e kit profissional gratuito.
+                                </div>
+                                <div class="hero-highlight">
+                                    <strong>FOCO DO PROGRAMA</strong>
+                                    <span class="info-rotativo">
+                                        <span class="info-item">Aulas presenciais com instrutores qualificados</span>
+                                        <span class="info-item" style="display:none;">Conteúdo prático voltado para o mercado de trabalho</span>
+                                        <span class="info-item" style="display:none;">Preparação para geração de renda e apoio para iniciar na área</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mini-badges">
+                                <span class="mini-badge">Trancista</span>
+                                <span class="mini-badge">Nails Designer</span>
+                                <span class="mini-badge">Designer de Sobrancelhas</span>
+                                <span class="mini-badge">Extensão de Cílios</span>
+                                <span class="mini-badge">Manicure</span>
+                                <span class="mini-badge">Pedicure Simples</span>
+                            </div>
+                            <div class="panel-actions">
+                                                            <script>
+                                                            // Efeito rotativo para as informações
+                                                            document.addEventListener('DOMContentLoaded', function() {
+                                                                const items = document.querySelectorAll('.info-rotativo .info-item');
+                                                                let idx = 0;
+                                                                setInterval(() => {
+                                                                    items.forEach((el, i) => {
+                                                                        el.style.display = (i === idx) ? 'inline' : 'none';
+                                                                    });
+                                                                    idx = (idx + 1) % items.length;
+                                                                }, 2500);
+                                                            });
+                                                            </script>
+                                <button type="button" class="cta-button" data-next="dados">Começar inscrição</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="wizard-panel" data-step="dados">
+                    <div class="step-card">
+                        <h2 class="panel-title">Dados pessoais</h2>
+
+                        <div class="step-grid step-grid--stacked">
+                            <div class="form-group full">
+                                <label for="nome">Nome completo *</label>
+                                <input type="text" id="nome" name="nome" maxlength="50" placeholder="Digite seu nome completo" value="{{ form_data.get('nome', '') }}">
+                                <div class="balao-erro" id="nome-error" {% if not errors.get('nome') %}hidden{% endif %}>{{ errors.get('nome', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="genero">Gênero *</label>
+                                <select id="genero" name="genero">
+                                    <option value="">Selecione</option>
+                                    {% for genero in generos %}
+                                    <option value="{{ genero }}" {% if form_data.get('genero') == genero %}selected{% endif %}>{{ genero }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="balao-erro" id="genero-error" {% if not errors.get('genero') %}hidden{% endif %}>{{ errors.get('genero', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cpf">CPF *</label>
+                                <input type="text" id="cpf" name="cpf" maxlength="14" placeholder="000.000.000-00" value="{{ form_data.get('cpf', '') }}">
+                                <div class="balao-erro" id="cpf-error" {% if not errors.get('cpf') %}hidden{% endif %}>{{ errors.get('cpf', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nascimento">Data de nascimento *</label>
+                                <input type="text" id="nascimento" name="nascimento" maxlength="10" placeholder="dd/mm/aaaa" value="{{ form_data.get('nascimento', '') }}">
+                                <div class="balao-erro" id="nascimento-error" {% if not errors.get('nascimento') %}hidden{% endif %}>{{ errors.get('nascimento', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="whatsapp">WhatsApp *</label>
+                                <input type="text" id="whatsapp" name="whatsapp" maxlength="16" placeholder="(00) 00000-0000" value="{{ form_data.get('whatsapp', '') }}">
+                                <div class="balao-erro" id="whatsapp-error" {% if not errors.get('whatsapp') %}hidden{% endif %}>{{ errors.get('whatsapp', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cep">CEP *</label>
+                                <input type="text" id="cep" name="cep" maxlength="9" placeholder="00000-000" value="{{ form_data.get('cep', '') }}">
+                                <div class="balao-erro" id="cep-error" {% if not errors.get('cep') %}hidden{% endif %}>{{ errors.get('cep', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bairro">Bairro *</label>
+                                <input type="text" id="bairro" name="bairro" maxlength="40" placeholder="Nome do bairro" value="{{ form_data.get('bairro', '') }}">
+                                <div class="balao-erro" id="bairro-error" {% if not errors.get('bairro') %}hidden{% endif %}>{{ errors.get('bairro', '') }}</div>
+                            </div>
+
+                            <div class="form-group full">
+                                <label for="email">E-mail *</label>
+                                <input type="email" id="email" name="email" maxlength="60" placeholder="seuemail@gmail.com" value="{{ form_data.get('email', '') }}">
+                                <div class="balao-erro" id="email-error" {% if not errors.get('email') %}hidden{% endif %}>{{ errors.get('email', '') }}</div>
+                            </div>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button type="button" class="secondary-button" data-prev="index">Voltar</button>
+                            <button type="button" class="cta-button" data-next="escolher">Próximo</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="wizard-panel" data-step="escolher">
+                    <div class="step-card">
+                        <h2 class="panel-title">Informações do curso</h2>
+
+                        <div class="step-grid step-grid--stacked">
+                            <div class="form-group">
+                                <label for="local">Local *</label>
+                                <select id="local" name="opcao_id">
+                                    <option value="" {% if not form_data.get('opcao_id') %}selected{% endif %}>Selecione um local</option>
+                                    {% for option in course_options %}
+                                    <option value="{{ option.id }}" {% if form_data.get('opcao_id') == option.id %}selected{% endif %}>{{ option.local }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="balao-erro" id="opcao_id-error" {% if not errors.get('opcao_id') %}hidden{% endif %}>{{ errors.get('opcao_id', '') }}</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="curso">Curso *</label>
+                                <input type="text" id="curso" name="curso" class="readonly-field" readonly value="{{ form_data.get('curso', '') }}">
+                            </div>
+
+                            <div class="form-group full">
+                                <label for="turma">Turma *</label>
+                                <input type="text" id="turma" name="turma" class="readonly-field" readonly value="{{ form_data.get('turma', '') }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dias_aula">Dias de aula</label>
+                                <input type="text" id="dias_aula" name="dias_aula" class="readonly-field" readonly value="{{ form_data.get('dias_aula', '') }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="horario">Horário</label>
+                                <input type="text" id="horario" name="horario" class="readonly-field" readonly value="{{ form_data.get('horario', '') }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="data_inicio">Início previsto</label>
+                                <input type="text" id="data_inicio" name="data_inicio" class="readonly-field" readonly value="{{ form_data.get('data_inicio', '') }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="encerramento">Encerramento</label>
+                                <input type="text" id="encerramento" name="encerramento" class="readonly-field" readonly value="{{ form_data.get('encerramento', '') }}">
+                            </div>
+
+                            <div class="form-group full">
+                                <label for="endereco_curso">Endereço da unidade</label>
+                                <div class="input-with-action">
+                                    <input type="text" id="endereco_curso" name="endereco_curso" class="readonly-field" readonly value="{{ form_data.get('endereco_curso', '') }}">
+                                    <button type="button" class="icon-button" id="btn-copiar-endereco" title="Copiar endereço">📋</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button type="button" class="secondary-button" data-prev="dados">Voltar</button>
+                            <button type="button" class="cta-button" data-next="revisao">Ir para revisão</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="wizard-panel" data-step="revisao">
+                    <div class="step-card">
+                        <h2 class="panel-title">Revise antes de finalizar</h2>
+                        <p class="panel-subtitle">Confira os dados preenchidos e confirme sua participação.</p>
+
+                        <div class="review-layout">
+                            <div class="review-box">
+                                <div class="review-title">Dados pessoais</div>
+                                <div class="review-list">
+                                    <div class="review-item"><strong>Nome</strong><span data-review="nome"></span></div>
+                                    <div class="review-item"><strong>CPF</strong><span data-review="cpf"></span></div>
+                                    <div class="review-item"><strong>Nascimento</strong><span data-review="nascimento"></span></div>
+                                    <div class="review-item"><strong>Gênero</strong><span data-review="genero"></span></div>
+                                    <div class="review-item"><strong>WhatsApp</strong><span data-review="whatsapp"></span></div>
+                                    <div class="review-item"><strong>CEP</strong><span data-review="cep"></span></div>
+                                    <div class="review-item"><strong>Bairro</strong><span data-review="bairro"></span></div>
+                                    <div class="review-item"><strong>E-mail</strong><span data-review="email"></span></div>
+                                </div>
+                            </div>
+
+                            <div class="review-box">
+                                <div class="review-title">Informações do curso</div>
+                                <div class="review-list">
+                                    <div class="review-item"><strong>Programa</strong><span data-review="local"></span></div>
+                                    <div class="review-item"><strong>Curso</strong><span data-review="curso"></span></div>
+                                    <div class="review-item"><strong>Turma</strong><span data-review="turma"></span></div>
+                                    <div class="review-item"><strong>Dias de aula</strong><span data-review="dias_aula"></span></div>
+                                    <div class="review-item"><strong>Horário</strong><span data-review="horario"></span></div>
+                                    <div class="review-item"><strong>Início previsto</strong><span data-review="data_inicio"></span></div>
+                                    <div class="review-item"><strong>Encerramento</strong><span data-review="encerramento"></span></div>
+                                    <div class="review-item"><strong>Endereço</strong><span data-review="endereco_curso"></span></div>
+                                </div>
+                            </div>
+
+                            <div class="review-box full">
+                                <div class="form-group">
+                                    <label for="como_conheceu">Como conheceu (opcional)</label>
+                                    <input type="text" id="como_conheceu" name="como_conheceu" maxlength="120" placeholder="Digite como conheceu o projeto" value="{{ form_data.get('como_conheceu', '') }}">
+                                    <div class="balao-erro" id="como_conheceu-error" {% if not errors.get('como_conheceu') %}hidden{% endif %}>{{ errors.get('como_conheceu', '') }}</div>
+                                </div>
+                            </div>
+
+                            <div class="review-box full">
+                                <div class="review-info-text" style="margin-bottom:10px; color:#2c6e9c; font-size:0.98rem; text-align:left;">
+                                    <strong>Elegibilidade:</strong> Esta inscrição é destinada a pessoas interessadas nos cursos de qualificação profissional do programa Rio + Elas.
+                                </div>
+                                <label class="review-check" for="confirma_dados">
+                                    <input type="checkbox" id="confirma_dados" name="confirma_dados" value="sim" {% if form_data.get('confirma_dados') %}checked{% endif %}>
+                                    <span>
+                                        Confirmo que tenho interesse em participar do programa Rio + Elas e em uma das turmas de qualificação disponíveis.<br>
+                                        Todas as informações fornecidas são verdadeiras e estou de acordo com os termos de participação.<br>
+                                        Autorizo o uso dos meus dados para fins de inscrição e contato relacionado ao curso.<br>
+                                        Também autorizo o uso da minha imagem para divulgação nos canais de comunicação e redes sociais do projeto e da Prefeitura do Rio de Janeiro.
+                                    </span>
+                                </label>
+                                <div class="review-info-text" style="margin-top:10px;">
+                                    <strong>Ao confirmar você declara a ciência de que:</strong>
+                                    <ul>
+                                        <li>O curso é totalmente gratuito</li>
+                                        <li>As vagas são limitadas e dependem de confirmação</li>
+                                        <li>Os dados serão usados apenas para inscrição e contato</li>
+                                    </ul>
+                                </div>
+                                <div class="balao-erro" id="confirma_dados-error" {% if not errors.get('confirma_dados') %}hidden{% endif %}>{{ errors.get('confirma_dados', '') }}</div>
+                            </div>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button type="button" class="secondary-button" data-prev="escolher">Voltar</button>
+                            <button type="submit" class="submit-button">Finalizar inscrição</button>
+                        </div>
+                    </div>
+                </section>
+            </form>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const stepOrder = ['index', 'dados', 'escolher', 'revisao'];
+            const progressByStep = {
+                index: 25,
+                dados: 45,
+                escolher: 70,
+                revisao: 90,
+            };
+
+            const form = document.getElementById('wizard-form');
+            const fill = document.getElementById('wizard-fill');
+            const startStep = document.body.dataset.startStep || 'index';
+            const panels = Array.from(document.querySelectorAll('[data-step]'));
+            const labels = Array.from(document.querySelectorAll('[data-step-label]'));
+            const reviewTargets = Array.from(document.querySelectorAll('[data-review]'));
+            const courseOptions = {{ course_options|tojson }};
+            const courseOptionsById = Object.fromEntries(courseOptions.map(function(option) {
+                return [String(option.id), option];
+            }));
+
+            const nomeInput = document.getElementById('nome');
+            const generoInput = document.getElementById('genero');
+            const cpfInput = document.getElementById('cpf');
+            const nascimentoInput = document.getElementById('nascimento');
+            const whatsappInput = document.getElementById('whatsapp');
+            const cepInput = document.getElementById('cep');
+            const bairroInput = document.getElementById('bairro');
+            const emailInput = document.getElementById('email');
+            const localInput = document.getElementById('local');
+            const cursoInput = document.getElementById('curso');
+            const turmaInput = document.getElementById('turma');
+            const diasAulaInput = document.getElementById('dias_aula');
+            const horarioInput = document.getElementById('horario');
+            const dataInicioInput = document.getElementById('data_inicio');
+            const encerramentoInput = document.getElementById('encerramento');
+            const confirmaDadosInput = document.getElementById('confirma_dados');
+            const enderecoInput = document.getElementById('endereco_curso');
+            const btnCopiarEndereco = document.getElementById('btn-copiar-endereco');
+
+            function somenteDigitos(valor) {
+                return (valor || '').replace(/\D/g, '');
+            }
+
+            function mostrarPasso(step) {
+                panels.forEach(function(panel) {
+                    panel.classList.toggle('ativo', panel.dataset.step === step);
+                });
+
+                labels.forEach(function(label) {
+                    const isActive = label.dataset.stepLabel === step;
+                    label.classList.toggle('ativo', isActive);
+                });
+
+                fill.style.width = (progressByStep[step] || 25) + '%';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function setError(fieldId, message) {
+                const field = document.getElementById(fieldId);
+                const error = document.getElementById(fieldId + '-error');
+                if (field) {
+                    field.classList.toggle('erro-campo', Boolean(message));
+                }
+                if (error) {
+                    error.textContent = message || '';
+                    error.hidden = !message;
+                }
+            }
+
+            function validarCPF(cpf) {
+                const digits = somenteDigitos(cpf);
+                if (digits.length !== 11 || /^(\d)\1+$/.test(digits)) {
+                    return false;
+                }
+
+                let soma = 0;
+                for (let index = 0; index < 9; index += 1) {
+                    soma += Number(digits.charAt(index)) * (10 - index);
+                }
+                let digito = (soma * 10) % 11;
+                if (digito === 10) {
+                    digito = 0;
+                }
+                if (digito !== Number(digits.charAt(9))) {
+                    return false;
+                }
+
+                soma = 0;
+                for (let index = 0; index < 10; index += 1) {
+                    soma += Number(digits.charAt(index)) * (11 - index);
+                }
+                digito = (soma * 10) % 11;
+                if (digito === 10) {
+                    digito = 0;
+                }
+                return digito === Number(digits.charAt(10));
+            }
+
+            function validarEmail(email) {
+                return /^[a-zA-Z0-9_.+-]+@((gmail|hotmail|outlook|yahoo)\.(com|com\.br))$/i.test((email || '').trim());
+            }
+
+            function idadePermitida(valor) {
+                const partes = (valor || '').split('/');
+                if (partes.length !== 3) {
+                    return false;
+                }
+
+                const dia = Number(partes[0]);
+                const mes = Number(partes[1]) - 1;
+                const ano = Number(partes[2]);
+                const data = new Date(ano, mes, dia);
+                if (
+                    Number.isNaN(data.getTime()) ||
+                    data.getDate() !== dia ||
+                    data.getMonth() !== mes ||
+                    data.getFullYear() !== ano
+                ) {
+                    return false;
+                }
+
+                const hoje = new Date();
+                let idade = hoje.getFullYear() - data.getFullYear();
+                const monthDiff = hoje.getMonth() - data.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && hoje.getDate() < data.getDate())) {
+                    idade -= 1;
+                }
+                return idade >= 16 && idade <= 90;
+            }
+
+            function validarCep(cep) {
+                return /^\d{5}-\d{3}$/.test((cep || '').trim());
+            }
+
+            function validarDDD(whatsapp) {
+                const digits = somenteDigitos(whatsapp);
+                if (digits.length < 11) {
+                    return false;
+                }
+                return [
+                    '11', '12', '13', '14', '15', '16', '17', '18', '19',
+                    '21', '22', '24', '27', '28',
+                    '31', '32', '33', '34', '35', '37', '38',
+                    '41', '42', '43', '44', '45', '46', '47', '48', '49',
+                    '51', '53', '54', '55',
+                    '61', '62', '63', '64', '65', '66', '67', '68', '69',
+                    '71', '73', '74', '75', '77', '79',
+                    '81', '82', '83', '84', '85', '86', '87', '88', '89',
+                    '91', '92', '93', '94', '95', '96', '97', '98', '99'
+                ].includes(digits.slice(0, 2));
+            }
+
+            function aplicarMascaraCPF() {
+                let valor = somenteDigitos(cpfInput.value).slice(0, 11);
+                if (valor.length > 9) {
+                    valor = valor.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+                } else if (valor.length > 6) {
+                    valor = valor.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+                } else if (valor.length > 3) {
+                    valor = valor.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+                }
+                cpfInput.value = valor;
+            }
+
+            function aplicarMascaraNascimento() {
+                let valor = somenteDigitos(nascimentoInput.value).slice(0, 8);
+                if (valor.length > 4) {
+                    valor = valor.replace(/(\d{2})(\d{2})(\d{1,4})/, '$1/$2/$3');
+                } else if (valor.length > 2) {
+                    valor = valor.replace(/(\d{2})(\d{1,2})/, '$1/$2');
+                }
+                nascimentoInput.value = valor;
+            }
+
+            function aplicarMascaraWhatsapp() {
+                let valor = somenteDigitos(whatsappInput.value).slice(0, 11);
+                if (valor.length > 6) {
+                    valor = valor.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+                } else if (valor.length > 2) {
+                    valor = valor.replace(/(\d{2})(\d{1,5})/, '($1) $2');
+                }
+                whatsappInput.value = valor;
+            }
+
+            function aplicarMascaraCep() {
+                let valor = somenteDigitos(cepInput.value).slice(0, 8);
+                if (valor.length > 5) {
+                    valor = valor.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+                }
+                cepInput.value = valor;
+            }
+
+            function syncReview() {
+                reviewTargets.forEach(function(target) {
+                    const field = document.getElementById(target.dataset.review);
+                    if (!field) {
+                        target.textContent = '';
+                        return;
+                    }
+
+                    if (field.tagName === 'SELECT') {
+                        const selectedOption = field.options[field.selectedIndex];
+                        target.textContent = selectedOption ? selectedOption.text.trim() : '';
+                        return;
+                    }
+
+                    target.textContent = field.value.trim();
+                });
+            }
+
+            function aplicarOpcaoCurso(optionId) {
+                const option = courseOptionsById[String(optionId)];
+                if (!option) {
+                    cursoInput.value = '';
+                    turmaInput.value = '';
+                    diasAulaInput.value = '';
+                    horarioInput.value = '';
+                    dataInicioInput.value = '';
+                    encerramentoInput.value = '';
+                    enderecoInput.value = '';
+                    return;
+                }
+
+                localInput.value = String(option.id);
+                cursoInput.value = option.curso;
+                turmaInput.value = option.turma;
+                diasAulaInput.value = option.dias_aula;
+                horarioInput.value = option.horario;
+                dataInicioInput.value = option.data_inicio;
+                encerramentoInput.value = option.encerramento;
+                enderecoInput.value = option.endereco_curso;
+                setError('opcao_id', '');
+            }
+
+            function validarNome() {
+                const valor = nomeInput.value.trim();
+                if (!valor) {
+                    setError('nome', 'Digite seu nome completo.');
+                    return false;
+                }
+                if (valor.length > 50) {
+                    setError('nome', 'O nome deve ter no máximo 50 caracteres.');
+                    return false;
+                }
+                if (!/^[A-Za-zÀ-ÿ '´`^~.-]+$/.test(valor)) {
+                    setError('nome', 'Use apenas letras e sinais permitidos no nome.');
+                    return false;
+                }
+                setError('nome', '');
+                return true;
+            }
+
+            function validarGenero() {
+                if (!generoInput.value) {
+                    setError('genero', 'Selecione o gênero.');
+                    return false;
+                }
+                setError('genero', '');
+                return true;
+            }
+
+            function validarCampoCPF() {
+                if (!validarCPF(cpfInput.value)) {
+                    setError('cpf', 'CPF inválido. Verifique e digite novamente.');
+                    return false;
+                }
+                setError('cpf', '');
+                return true;
+            }
+
+            function validarNascimento() {
+                if (!idadePermitida(nascimentoInput.value)) {
+                    setError('nascimento', 'Idade permitida: de 16 até 90 anos.');
+                    return false;
+                }
+                setError('nascimento', '');
+                return true;
+            }
+
+            function validarWhatsapp() {
+                const digits = somenteDigitos(whatsappInput.value);
+                if (digits.length !== 11 || !/^\(\d{2}\) \d{5}-\d{4}$/.test(whatsappInput.value) || !validarDDD(whatsappInput.value)) {
+                    setError('whatsapp', 'Informe um WhatsApp com DDD válido do Brasil.');
+                    return false;
+                }
+                setError('whatsapp', '');
+                return true;
+            }
+
+            function validarCampoCep() {
+                if (!validarCep(cepInput.value)) {
+                    setError('cep', 'CEP inválido. Formato: 00000-000.');
+                    return false;
+                }
+                setError('cep', '');
+                return true;
+            }
+
+            function validarBairro() {
+                const valor = bairroInput.value.trim();
+                if (!valor) {
+                    setError('bairro', 'Informe o bairro.');
+                    return false;
+                }
+                if (valor.length > 40) {
+                    setError('bairro', 'O bairro deve ter no máximo 40 caracteres.');
+                    return false;
+                }
+                setError('bairro', '');
+                return true;
+            }
+
+            function validarCampoEmail() {
+                if (!validarEmail(emailInput.value)) {
+                    setError('email', 'Digite um e-mail válido do Gmail, Hotmail, Outlook ou Yahoo.');
+                    return false;
+                }
+                setError('email', '');
+                return true;
+            }
+
+            function validarPassoDados() {
+                const validacoes = [
+                    { ok: validarNome(), field: nomeInput },
+                    { ok: validarGenero(), field: generoInput },
+                    { ok: validarCampoCPF(), field: cpfInput },
+                    { ok: validarNascimento(), field: nascimentoInput },
+                    { ok: validarWhatsapp(), field: whatsappInput },
+                    { ok: validarCampoCep(), field: cepInput },
+                    { ok: validarBairro(), field: bairroInput },
+                    { ok: validarCampoEmail(), field: emailInput },
+                ];
+                const primeiraInvalida = validacoes.find(function(item) {
+                    return !item.ok;
+                });
+                if (primeiraInvalida) {
+                    primeiraInvalida.field.focus();
+                    return false;
+                }
+                return true;
+            }
+
+            function validarPassoRevisao() {
+                if (!confirmaDadosInput.checked) {
+                    setError('confirma_dados', 'Confirme os dados para finalizar a inscrição.');
+                    confirmaDadosInput.focus();
+                    return false;
+                }
+                setError('confirma_dados', '');
+                return true;
+            }
+
+            function validarPassoEscolher() {
+                if (!courseOptionsById[String(localInput.value)]) {
+                    setError('opcao_id', 'Selecione um local válido.');
+                    localInput.focus();
+                    return false;
+                }
+                setError('opcao_id', '');
+                return true;
+            }
+
+            async function buscarBairroPorCep() {
+                const cepLimpo = somenteDigitos(cepInput.value);
+                if (cepLimpo.length !== 8) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('https://viacep.com.br/ws/' + cepLimpo + '/json/');
+                    const data = await response.json();
+                    if (!data.erro && data.bairro) {
+                        bairroInput.value = data.bairro;
+                        validarBairro();
+                        syncReview();
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar CEP:', error);
+                }
+            }
+
+            document.querySelectorAll('[data-next]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const target = button.dataset.next;
+                    if (target === 'escolher' && !validarPassoDados()) {
+                        return;
+                    }
+                    if (target === 'revisao' && !validarPassoEscolher()) {
+                        return;
+                    }
+                    syncReview();
+                    mostrarPasso(target);
+                });
+            });
+
+            document.querySelectorAll('[data-prev]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    syncReview();
+                    mostrarPasso(button.dataset.prev);
+                });
+            });
+
+            form.addEventListener('submit', function(event) {
+                const dadosValidos = validarPassoDados();
+                if (!dadosValidos) {
+                    event.preventDefault();
+                    mostrarPasso('dados');
+                    return;
+                }
+
+                syncReview();
+                if (!validarPassoRevisao()) {
+                    event.preventDefault();
+                    mostrarPasso('revisao');
+                }
+            });
+
+            nomeInput.addEventListener('blur', validarNome);
+            generoInput.addEventListener('change', validarGenero);
+            cpfInput.addEventListener('input', function() {
+                aplicarMascaraCPF();
+                if (somenteDigitos(cpfInput.value).length === 11) {
+                    validarCampoCPF();
+                } else {
+                    setError('cpf', '');
+                }
+                syncReview();
+            });
+            nascimentoInput.addEventListener('input', function() {
+                aplicarMascaraNascimento();
+                syncReview();
+            });
+            nascimentoInput.addEventListener('blur', validarNascimento);
+            whatsappInput.addEventListener('input', function() {
+                aplicarMascaraWhatsapp();
+                if (somenteDigitos(whatsappInput.value).length >= 10) {
+                    validarWhatsapp();
+                } else {
+                    setError('whatsapp', '');
+                }
+                syncReview();
+            });
+            cepInput.addEventListener('input', function() {
+                aplicarMascaraCep();
+                bairroInput.value = '';
+                if (cepInput.value.length === 9) {
+                    validarCampoCep();
+                    buscarBairroPorCep();
+                } else {
+                    setError('cep', '');
+                }
+                syncReview();
+            });
+            bairroInput.addEventListener('blur', function() {
+                validarBairro();
+                syncReview();
+            });
+            emailInput.addEventListener('input', function() {
+                if (emailInput.value.trim()) {
+                    validarCampoEmail();
+                } else {
+                    setError('email', '');
+                }
+                syncReview();
+            });
+            localInput.addEventListener('change', function() {
+                aplicarOpcaoCurso(localInput.value);
+                syncReview();
+            });
+            confirmaDadosInput.addEventListener('change', function() {
+                if (confirmaDadosInput.checked) {
+                    setError('confirma_dados', '');
+                }
+            });
+
+            ['nome', 'genero', 'whatsapp', 'cep', 'bairro', 'email', 'local', 'curso', 'turma', 'dias_aula', 'horario', 'data_inicio', 'encerramento', 'endereco_curso', 'como_conheceu'].forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (!field) {
+                    return;
+                }
+                field.addEventListener('input', syncReview);
+                field.addEventListener('change', syncReview);
+            });
+
+            if (btnCopiarEndereco && enderecoInput) {
+                btnCopiarEndereco.addEventListener('click', async function() {
+                    try {
+                        await navigator.clipboard.writeText(enderecoInput.value);
+                        btnCopiarEndereco.textContent = 'COPIADO ✅';
+                    } catch (error) {
+                        enderecoInput.select();
+                        document.execCommand('copy');
+                        btnCopiarEndereco.textContent = 'COPIADO ✅';
+                    }
+                    setTimeout(function() {
+                        btnCopiarEndereco.textContent = 'COPIAR 📋';
+                    }, 1200);
+                });
+            }
+
+            aplicarOpcaoCurso(localInput.value);
+            syncReview();
+            mostrarPasso(stepOrder.includes(startStep) ? startStep : 'index');
+        });
+    </script>
 </body>
 </html>
 '''
-from flask import Flask, render_template_string, request, redirect, url_for, session
-import csv
-import uuid
-import os
 
-from gsheet_utils import append_to_sheet
-import traceback
-
-
-TEMPLATE_INDEX = '''
+TEMPLATE_CONFIRMACAO = r'''
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIO + ELAS</title>
+    <!-- IMPORTANTE! viewport responsivo para celular -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Inscrição realizada com sucesso</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/assistant.css">
     <link href="https://fonts.googleapis.com/css2?family=Wise:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --cor-principal: #008ff0;
+            --cor-clara: #eaf6ff;
+            --cor-texto: #10324d;
+            --sombra-card: 0 18px 55px rgba(0, 143, 240, 0.18);
+        }
+
         body {
-            background: linear-gradient(120deg, #fff 60%, #008ff0 100%);
+            min-height: 100vh;
+            margin: 0;
+            background:
+                radial-gradient(circle at top left, rgba(0, 143, 240, 0.15), transparent 32%),
+                linear-gradient(140deg, #f5fbff 0%, #fff 55%, #d9efff 100%);
             font-family: 'Wise', Arial, sans-serif;
         }
-        .benefits {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-gap: 24px;
-            max-width: 800px;
-            margin: 18px auto 0 auto;
+
+        .main-header {
+            border-bottom: 4px solid #008ff0;
+            background: rgba(255, 255, 255, 0.92);
         }
-        .benefit {
-            min-width: 220px;
-            max-width: 520px;
-            width: 50%;
-            min-height: 44px;
-            height: auto;
+
+        .confirm-page {
+            width: min(680px, calc(100% - 16px));
+            margin: 0 auto;
+            padding: 10px 0 20px;
+            text-align: center;
+        }
+
+        .wizard-progress {
+            margin: 12px auto 16px;
+            padding: 14px 14px 16px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 12px 30px rgba(0, 143, 240, 0.12);
+        }
+
+        .wizard-track {
+            width: 100%;
+            height: 14px;
+            border-radius: 999px;
+            background: #d9efff;
+            overflow: hidden;
+        }
+
+        .wizard-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #008ff0 0%, #42b8ff 100%);
+            border-radius: 999px;
+        }
+
+        .wizard-labels {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .wizard-label {
+            padding: 10px 8px;
+            border: 1px solid #c5e6ff;
+            border-radius: 16px;
+            background: #fff;
+            color: #2e6288;
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .wizard-label.ativo {
+            border-color: var(--cor-principal);
+            background: var(--cor-clara);
+            color: var(--cor-principal);
+            box-shadow: 0 8px 20px rgba(0, 143, 240, 0.14);
+        }
+
+        .confirm-shell {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            box-shadow: var(--sombra-card);
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .confirm-card {
+            padding: 20px 16px 18px;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            text-align: center;
+            max-width: 620px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .checkmark {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 12px;
+        }
+
+        .checkmark svg {
+            width: 100%;
+            height: 100%;
+            stroke: #008ff0;
+            fill: none;
+        }
+
+        .confirm-card h1 {
+            margin: 0 0 10px;
+            color: #008ff0;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            letter-spacing: -0.04em;
+        }
+
+        .confirm-card p {
+            margin: 0;
+            color: #2e6288;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .protocol-box {
+            margin: 16px auto 12px;
+            padding: 14px;
+            max-width: 320px;
+            border-radius: 16px;
+            background: #eaf6ff;
+            border: 2px solid #008ff0;
+        }
+
+        .protocol-box strong {
+            display: block;
+            color: #008ff0;
+            font-size: 0.98rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .protocol-box span {
+            display: block;
+            color: #008ff0;
+            font-size: 1.35rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            word-break: break-all;
+        }
+
+        .next-steps {
+            margin: 16px auto 0;
+            max-width: 460px;
+            padding: 14px;
+            text-align: center;
+            border-radius: 18px;
+            background: #fff;
+            border: 1px solid #d0ebff;
+        }
+
+        .next-steps h2 {
+            margin: 0 0 12px;
+            color: #008ff0;
+            font-size: 1.2rem;
+        }
+
+        .next-steps ol {
+            margin: 0;
+            padding-left: 22px;
+            color: #1f4f73;
+            line-height: 1.55;
+            text-align: center;
+            list-style-position: inside;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 16px;
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .action-button {
             display: flex;
             align-items: center;
             justify-content: center;
-            box-sizing: border-box;
-            background: linear-gradient(90deg, #fff 80%, #eae6f7 100%);
-            border: 1.5px solid #008ff0;
-            border-radius: 18px;
-            box-shadow: 0 2px 12px #008ff044, 0 1.5px 8px #008ff022;
-            font-size: 1.08em;
-            color: #222;
-            font-weight: 700;
-            margin: 10px auto;
-            padding: 10px 18px;
-            transition: box-shadow 0.25s, transform 0.18s, background 0.18s;
-            cursor: pointer;
-            white-space: normal;
-            overflow-wrap: break-word;
-            word-break: break-word;
+            min-height: 42px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 0.03em;
             text-align: center;
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
-        .benefit:hover {
-            box-shadow: 0 6px 24px #008ff044, 0 2px 12px #008ff022;
-            background: linear-gradient(90deg, #eae6f7 60%, #fff 100%);
-            transform: translateY(-2px) scale(1.03);
+
+        .action-button.primary {
+            background: linear-gradient(90deg, #008ff0 0%, #42b8ff 100%);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(0, 143, 240, 0.24);
         }
-        @media (max-width: 700px) {
-            .benefits {
+
+        .action-button.secondary {
+            background: #fff;
+            color: #008ff0;
+            border: 2px solid #008ff0;
+        }
+
+        .action-button:hover {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 640px) {
+            html,
+            body {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+
+            body * {
+                min-width: 0;
+            }
+
+            body {
+                overflow-x: hidden;
+            }
+
+            .main-header {
+                padding: 10px 12px;
+            }
+
+            .header-logos {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .header-logos img,
+            .logo,
+            .logo-prefeitura-topo {
+                max-width: min(88vw, 280px);
+                height: auto;
+            }
+
+            .confirm-page {
+                width: calc(100% - 8px) !important;
+                max-width: 100% !important;
+                padding: 6px 0 12px;
+            }
+
+            .confirm-card {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 14px 10px 12px;
+            }
+
+            .wizard-progress {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 10px;
+                border-radius: 18px;
+            }
+
+            .wizard-labels {
                 grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .confirm-shell {
+                width: 100% !important;
+                max-width: 100% !important;
+                border-radius: 18px;
+            }
+
+            .protocol-box span {
+                font-size: 1.3rem;
+            }
+
+            .next-steps {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 10px;
+            }
+
+            .actions,
+            .action-button,
+            .protocol-box,
+            .next-steps,
+            .wizard-label,
+            .wizard-track {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            img,
+            svg {
+                max-width: 100% !important;
+                height: auto !important;
             }
         }
-        h1, h2, h3, h4, h5, h6 {
-            color: #008ff0;
-            font-family: 'Wise', Arial, sans-serif;
-        }
-        .cta-btn {
-            display: inline-block;
-            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            padding: 16px 40px;
-            font-size: 1.18em;
-            font-weight: 800;
-            font-family: 'Wise', Arial, sans-serif;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,143,240,0.10);
-            letter-spacing: 0.5px;
-            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-            outline: none;
-            text-transform: uppercase;
-            margin-top: 18px;
-            text-decoration: none;
-        }
-        .cta-btn:hover {
-            background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%);
-            box-shadow: 0 4px 16px rgba(0,143,240,0.12);
-        }
-        .ganhos-box, .cursos-section, .contato-section {
-            background: #fff;
-            border-radius: 16px;
-            border: 2px solid #008ff0;
-            margin: 24px 0;
-            padding: 18px 22px;
-        }
-        .ganhos-list li, .cursos-title, .cursos-destaque, .contato-section p, .contato-section h2 {
-            color: #008ff0;
-        }
-        .icon-svg svg {
-            stroke: #008ff0 !important;
-        }
-        .main-header, footer {
-            background: #fff;
-        }
-        .main-header {
-            border-bottom: 4px solid #008ff0;
-        }
-        footer {
-            border-top: 4px solid #008ff0;
-        }
-        footer p {
-            color: #008ff0;
-        }
     </style>
-</head>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '26419185324388434');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=26419185324388434&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
+    {{ meta_pixel|safe }}
 </head>
 <body>
     <script src="/static/assistant.js"></script>
-    <script>
-    // Validação de CPF válido
-    function validarCPF(cpf) {
-        cpf = cpf.replace(/\D/g, '');
-        if (cpf.length !== 11 || /^([0-9])\1+$/.test(cpf)) return false;
-        let soma = 0, resto;
-        for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
-        resto = (soma * 10) % 11;
-        if ((resto === 10) || (resto === 11)) resto = 0;
-        if (resto !== parseInt(cpf.substring(9, 10))) return false;
-        soma = 0;
-        for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
-        resto = (soma * 10) % 11;
-        if ((resto === 10) || (resto === 11)) resto = 0;
-        if (resto !== parseInt(cpf.substring(10, 11))) return false;
-        return true;
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        // Validação de CPF
-        var cpfInput = document.getElementById('cpf');
-        if (cpfInput) {
-            cpfInput.addEventListener('blur', function() {
-                var val = cpfInput.value;
-                if (val && !validarCPF(val)) {
-                    cpfInput.setCustomValidity('Digite um CPF válido');
-                    cpfInput.reportValidity();
-                } else {
-                    cpfInput.setCustomValidity('');
-                }
-            });
-        }
-        // Validação de e-mail
-        var emailInput = document.getElementById('email');
-        if (emailInput) {
-            emailInput.addEventListener('blur', function() {
-                var val = emailInput.value;
-                var re = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
-                if (val && !re.test(val)) {
-                    emailInput.setCustomValidity('Digite um e-mail válido');
-                    emailInput.reportValidity();
-                } else {
-                    emailInput.setCustomValidity('');
-                }
-            });
-        }
-    });
-    </script>
     <header class="main-header">
         <div class="header-logos">
             <img src="/static/logo_fgm.png" alt="Logo FGM" class="logo">
             <img src="/static/logo-prefeitura.png" alt="Prefeitura do Rio" class="logo-prefeitura-topo">
         </div>
     </header>
-    <div class="progress-bar" style="width: 100%; height: 18px; background: #e6f6ff; border-radius: 12px; margin: 18px auto 0 auto; overflow: hidden; max-width: 520px;">
-    <div class="progress" style="height: 100%; background: linear-gradient(90deg, #008ff0 0%, #008ff0 100%); border-radius: 12px; transition: width 0.3s; width: 25%;"></div>
-    </div>
-    <main>
-        <section id="hero" class="hero-section" style="background: linear-gradient(120deg, #fff 60%, #008ff0 100%); border-radius: 24px; box-shadow: 0 4px 24px #008ff008; padding: 36px 0 32px 0; margin-bottom: 32px;">
-            <div style="text-align:center; margin-bottom: 18px;">
-                <span style="background: #008ff0; color: #fff; font-weight: bold; font-size: 1.05em; padding: 8px 24px; border-radius: 24px; letter-spacing: 1px; box-shadow: 0 2px 8px #008ff022; display: inline-block;">PROGRAMA:<br>RIO + ELAS</span>
+
+    <div class="confirm-page">
+        <div class="wizard-progress">
+            <div class="wizard-track"><div class="wizard-fill"></div></div>
+            <div class="wizard-labels">
+                <div class="wizard-label">1. Início</div>
+                <div class="wizard-label">2. Dados pessoais</div>
+                <div class="wizard-label">3. Escolher</div>
+                <div class="wizard-label ativo">4. Confirmação</div>
             </div>
-            <h1 style="font-size:2em; font-weight:900; text-align:center; margin-bottom: 10px; text-shadow: 0 2px 8px #fff, 0 1px 0 #008ff022; color:#008ff0;">TRANSFORME SUA VIDA ATRAVÉS DA BELEZA!</h1>
-            <h2 style="font-size:1em; font-weight:400; color:#008ff0; text-align:center; margin-bottom: 22px;">Cursos de qualificação profissional oferecidos pela Prefeitura do Rio de Janeiro. Invista no seu futuro sem gastar nada!</h2>
-            <div class="benefits" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; margin-top: 18px;">
-                <div class="benefit-carousel" style="display: flex; justify-content: center; align-items: center; margin-top: 24px; width: 100%;">
-                    <div id="benefit-card" class="benefit" style="width: 100%; max-width: 700px; min-height: 80px; font-size: 1.25em; padding: 32px 32px; background: linear-gradient(90deg, #fff 80%, #eae6f7 100%); border: 2px solid #008ff0; border-radius: 22px; box-shadow: 0 4px 24px #008ff044; color: #222; font-weight: bold; text-align: center; transition: background 0.3s, box-shadow 0.3s, opacity 0.5s; opacity: 1;">
-                        100% Gratuito
-                    </div>
-                </div>
-                <script>
-                    const benefits = [
-                        "100% Gratuito",
-                        "Certificado de Conclusão",
-                        "Aulas presenciais com instrutores qualificados",
-                        "Conteúdo prático voltado para o mercado de trabalho",
-                        "Preparação para geração de renda",
-                        "Material didático incluso",
-                        "Networking com outros profissionais",
-                        "Apoio para iniciar na área profissional",
-                        "Kit Profissional Gratuito"
-                    ];
-                    let benefitIndex = 0;
-                    setInterval(() => {
-                        const card = document.getElementById('benefit-card');
-                        card.style.opacity = 0;
-                        setTimeout(() => {
-                            benefitIndex = (benefitIndex + 1) % benefits.length;
-                            card.textContent = benefits[benefitIndex];
-                            card.style.opacity = 1;
-                        }, 500);
-                    }, 3000);
-                </script>
-            </div>
-        </section>
-        <div style="text-align:center;">
-            <a href="/inscricao" class="cta-btn">INSCREVER ME!</a>
         </div>
-        <section id="cursos" class="cursos-section">
-            <p class="cursos-title">CURSOS DISPONÍVEIS</p>
-            <p class="cursos-destaque"><b>TRANCISTA</b> &bull; <b>NAILS DESIGNER</b> &bull; <b>DESIGNER DE SOBRANCELHAS</b> &bull; <b>EXTENSÃO DE CÍLIOS</b> &bull; <b>MANICURE</b> &bull; <b>PEDICURE SIMPLES</b></p>
-        </section>
-        <!-- Seção de ganhos removida pois os benefícios já estão destacados acima -->
-        <section id="contato" class="contato-section">
-            <img src="https://investidordesucesso.fgmcursos.com.br/assets/logo-rj-C4on5mTt.png" alt="Prefeitura do Rio de Janeiro" class="logo-prefeitura">
-        </section>
-    </main>
-    <footer style="border-top: 4px solid #008ff0; background: linear-gradient(90deg, #fff 60%, #008ff0 100%);">
-        <p style="color: #008ff0;">&copy; 2020 FGM. Todos os direitos Reservados</p>
-    </footer>
+
+        <div class="confirm-shell">
+            <div class="confirm-card">
+                <div class="checkmark">
+                    <svg viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="90" stroke-width="16"></circle>
+                        <polyline points="60,110 95,145 145,75" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    </svg>
+                </div>
+
+                <h1>Inscrição realizada com sucesso</h1>
+                <div class="protocol-box">
+                    <strong>Número de protocolo</strong>
+                    <span>{{ protocolo }}</span>
+                </div>
+
+                <div class="actions">
+                    <a class="action-button primary" href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer">Compartilhar no WhatsApp</a>
+                    <a class="action-button secondary" href="{{ url_for('home') }}">Voltar ao início</a>
+                </div>
+
+                <div class="next-steps">
+                    <h2>Próximos passos</h2>
+                    <ol>
+                        <li>Aguarde nosso contato via WhatsApp.</li>
+                        <li>Prepare RG, CPF e comprovante de residência.</li>
+                        <li>Fique atento ao contato com os detalhes da turma.</li>
+                        <li>Compareça à unidade informada no dia marcado.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 '''
 
 app = Flask(__name__)
-app.secret_key = 'chave-secreta-para-sessao'  # Troque por uma chave forte em produção
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave-secreta-para-sessao")
 
-@app.route('/')
+
+def get_default_form_data(source=None):
+    form_data = {
+        "nome": "",
+        "genero": "",
+        "cpf": "",
+        "nascimento": "",
+        "whatsapp": "",
+        "cep": "",
+        "bairro": "",
+        "email": "",
+        "opcao_id": "",
+        "local": "",
+        "curso": "",
+        "turma": "",
+        "dias_aula": "",
+        "horario": "",
+        "data_inicio": "",
+        "encerramento": "",
+        "endereco_curso": "",
+        "como_conheceu": "",
+        "confirma_dados": "",
+    }
+
+    if source:
+        for key in form_data:
+            value = source.get(key, form_data[key])
+            if key == "confirma_dados":
+                form_data[key] = "sim" if value else ""
+            else:
+                form_data[key] = (value or "").strip()
+
+        selected_option = get_course_option(form_data["opcao_id"])
+        if selected_option:
+            fill_form_data_from_option(form_data, selected_option)
+
+    return form_data
+
+
+def cpf_valido(cpf):
+    digits = re.sub(r"\D", "", cpf or "")
+    if len(digits) != 11 or len(set(digits)) == 1:
+        return False
+
+    total = sum(int(digits[index]) * (10 - index) for index in range(9))
+    digit = (total * 10) % 11
+    digit = 0 if digit == 10 else digit
+    if digit != int(digits[9]):
+        return False
+
+    total = sum(int(digits[index]) * (11 - index) for index in range(10))
+    digit = (total * 10) % 11
+    digit = 0 if digit == 10 else digit
+    return digit == int(digits[10])
+
+def idade_aceita(nascimento):
+    try:
+        data_nascimento = datetime.strptime(nascimento, "%d/%m/%Y")
+    except ValueError:
+        return False
+
+    hoje = datetime.today()
+    idade = hoje.year - data_nascimento.year
+    if (hoje.month, hoje.day) < (data_nascimento.month, data_nascimento.day):
+        idade -= 1
+    return 16 <= idade <= 90
+
+
+def whatsapp_valido(whatsapp):
+    digits = re.sub(r"\D", "", whatsapp or "")
+    if len(digits) != 11:
+        return False
+    if not re.fullmatch(r"\(\d{2}\) \d{5}-\d{4}", whatsapp or ""):
+        return False
+    return digits[:2] in VALID_DDDS
+
+
+def validate_form_data(form_data):
+    errors = {}
+    selected_option = get_course_option(form_data["opcao_id"])
+
+    if not selected_option:
+        errors["opcao_id"] = "Selecione um local válido."
+
+    nome = form_data["nome"]
+    if not nome:
+        errors["nome"] = "Digite seu nome completo."
+    elif len(nome) > 50:
+        errors["nome"] = "O nome deve ter no máximo 50 caracteres."
+    elif not NAME_PATTERN.fullmatch(nome):
+        errors["nome"] = "Use apenas letras e sinais permitidos no nome."
+
+    if form_data["genero"] not in {"Feminino", "Masculino", "Outro", "Prefiro não dizer"}:
+        errors["genero"] = "Selecione o gênero."
+
+    if not cpf_valido(form_data["cpf"]):
+        errors["cpf"] = "CPF inválido. Verifique e digite novamente."
+
+    if not idade_aceita(form_data["nascimento"]):
+        errors["nascimento"] = "Idade permitida: de 16 até 90 anos."
+
+    if not whatsapp_valido(form_data["whatsapp"]):
+        errors["whatsapp"] = "Informe um WhatsApp com DDD válido do Brasil."
+
+    if not re.fullmatch(r"\d{5}-\d{3}", form_data["cep"] or ""):
+        errors["cep"] = "CEP inválido. Formato: 00000-000."
+
+    bairro = form_data["bairro"]
+    if not bairro:
+        errors["bairro"] = "Informe o bairro."
+    elif len(bairro) > 40:
+        errors["bairro"] = "O bairro deve ter no máximo 40 caracteres."
+
+    if not ALLOWED_EMAIL_PATTERN.fullmatch(form_data["email"] or ""):
+        errors["email"] = "Digite um e-mail válido do Gmail, Hotmail, Outlook ou Yahoo."
+
+    if form_data["confirma_dados"] != "sim":
+        errors["confirma_dados"] = "Confirme os dados para finalizar a inscrição."
+
+    return errors
+
+
+def error_step(errors):
+    if "confirma_dados" in errors:
+        return "revisao"
+    if "opcao_id" in errors:
+        return "escolher"
+    return "dados"
+
+
+def render_wizard(form_data=None, errors=None, current_step="index"):
+    current_form_data = form_data or get_default_form_data()
+    selected_option = get_course_option(current_form_data.get("opcao_id")) or COURSE_INFO
+
+    return render_template_string(
+        TEMPLATE_WIZARD,
+        course_info=selected_option,
+        course_options=COURSE_OPTIONS,
+        current_step=current_step,
+        errors=errors or {},
+        form_data=current_form_data,
+        generos=["Feminino", "Masculino", "Outro", "Prefiro não dizer"],
+        meta_pixel=META_PIXEL,
+    )
+
+
+@app.route("/", methods=["GET"])
 def home():
-    return render_template_string(TEMPLATE_INDEX)
+    return render_wizard()
 
-@app.route('/inscricao', methods=['GET', 'POST'])
-def inscricao():
-    if request.method == 'POST':
-        from datetime import datetime
-        nome = request.form.get('nome', '')
-        if len(nome) > 50:
-            return render_template_string(TEMPLATE_INSCRICAO, erro_nome='O nome deve ter no máximo 50 caracteres.')
-        session['nome'] = nome
-        session['cpf'] = request.form.get('cpf')
-        nascimento = request.form.get('nascimento')
-        session['nascimento'] = nascimento
-        whatsapp = request.form.get('whatsapp','')
-        import re
-        ddd_match = re.match(r'\((\d{2})\)', whatsapp)
-        ddd = ddd_match.group(1) if ddd_match else None
-        ddds_validos = [
-            '68','96','92','97','91','93','94','95','63','69', # Norte
-            '82','71','73','74','75','77','85','88','98','99','83','81','87','86','89','84','79', # Nordeste
-            '61','62','64','65','66','67', # Centro-Oeste
-            '27','28','31','32','33','34','35','37','38','21','22','24','11','12','13','14','15','16','17','18','19', # Sudeste
-            '41','42','43','44','45','46','47','48','49','51','53','54','55' # Sul
-        ]
-        if not ddd or ddd not in ddds_validos:
-            return render_template_string(TEMPLATE_INSCRICAO, erro_whatsapp='Informe um DDD válido do Brasil.')
-        session['whatsapp'] = whatsapp
-        session['cep'] = request.form.get('cep', '')
-        session['bairro'] = request.form.get('bairro', '')
-        session['email'] = request.form.get('email')
-        session['genero'] = request.form.get('genero')
-        # Validação de idade mínima e máxima
-        try:
-            if nascimento:
-                # Aceita tanto yyyy-mm-dd (formulário HTML) quanto dd/mm/yyyy (usuário)
-                if '-' in nascimento:
-                    data_nasc = datetime.strptime(nascimento, '%Y-%m-%d')
-                else:
-                    data_nasc = datetime.strptime(nascimento, '%d/%m/%Y')
-                hoje = datetime.today()
-                idade = (hoje - data_nasc).days // 365
-                if idade > 90:
-                    return render_template_string(TEMPLATE_INSCRICAO, erro_nascimento='Idade permitida: de 16 até 90 anos')
-                if idade < 16:
-                    return render_template_string(TEMPLATE_INSCRICAO, erro_nascimento='Idade permitida: de 16 até 90 anos')
-        except Exception:
-            return render_template_string(TEMPLATE_INSCRICAO, erro_nascimento='Data de nascimento inválida.')
-        return redirect(url_for('curso'))
-    return render_template_string(TEMPLATE_INSCRICAO)
 
-@app.route('/curso', methods=['GET', 'POST'])
-def curso():
-    if request.method == 'POST':
-        # Padronizar e garantir que todos os campos estejam corretos
-        session['local'] = request.form.get('local', '').strip()
-        session['curso'] = request.form.get('curso', '').strip()
-        session['turma'] = request.form.get('turma', '').strip()
-        session['horario'] = request.form.get('horario', '').strip()
-        session['dias_semana'] = request.form.get('dias_semana', '').strip()
-        session['data_inicio'] = request.form.get('data_inicio', '').strip()
-        session['encerramento'] = request.form.get('encerramento', '').strip()
-        session['endereco_curso'] = request.form.get('endereco', '').strip()
+@app.route("/inscricao", methods=["GET", "POST"])
+def inscricao_unica():
+    if request.method == "GET":
+        return redirect(url_for("home"))
 
-        # NOVO: Salvar os nomes legíveis de local, curso e turma diretamente do formulário, se enviados
-        local_nome_legivel = request.form.get('local_nome_legivel', '').strip()
-        curso_nome_legivel = request.form.get('curso_nome_legivel', '').strip()
-        turma_nome_legivel = request.form.get('turma_nome_legivel', '').strip()
+    form_data = get_default_form_data(request.form)
+    errors = validate_form_data(form_data)
+    if errors:
+        return render_wizard(form_data=form_data, errors=errors, current_step=error_step(errors))
 
-        # fallback para dicionário backend se não vier do form
-        if not local_nome_legivel or not curso_nome_legivel or not turma_nome_legivel:
-            try:
-                import ast
-                import re
-                local_id = session.get('local')
-                curso_id = session.get('curso')
-                turma_id = session.get('turma')
-                match = re.search(r'cursosData\s*=\s*({.*?});', TEMPLATE_CURSO, re.DOTALL)
-                if match:
-                    cursosData_str = match.group(1)
-                    cursosData = ast.literal_eval(cursosData_str.replace('null', 'None'))
-                    if local_id and cursosData.get(local_id):
-                        if not local_nome_legivel:
-                            local_nome_legivel = cursosData[local_id].get('nome', local_id)
-                        curso_list = cursosData[local_id].get('cursos', [])
-                        curso_obj = next((c for c in curso_list if c.get('id') == curso_id), None)
-                        if curso_obj:
-                            if not curso_nome_legivel:
-                                curso_nome_legivel = curso_obj.get('nome', curso_id)
-                            turma_obj = next((t for t in curso_obj.get('turmas', []) if t.get('id') == turma_id), None)
-                            if turma_obj and not turma_nome_legivel:
-                                turma_nome_legivel = turma_obj.get('nome', turma_id)
-            except Exception as e:
-                print('Erro ao buscar nomes legíveis:', e)
-        session['local_nome_legivel'] = local_nome_legivel or session.get('local', '')
-        session['curso_nome_legivel'] = curso_nome_legivel or session.get('curso', '')
-        session['turma_nome_legivel'] = turma_nome_legivel or session.get('turma', '')
-
-        return redirect(url_for('revisao'))
-    return render_template_string(TEMPLATE_CURSO)
-
-@app.route('/revisao', methods=['GET', 'POST'])
-def revisao():
-    if request.method == 'POST':
-        session['como_conheceu'] = request.form.get('como_conheceu')
-        return redirect(url_for('confirmacao'))
-    return render_template_string(TEMPLATE_REVISAO, dados=session)
-
-@app.route('/confirmacao')
-def confirmacao():
-    # Gera protocolo único
-    protocolo = str(uuid.uuid4())[:8]
-    session['protocolo'] = protocolo
-    campos_obrigatorios = [
-        ('nome', 'Nome'),
-        ('genero', 'Gênero'),
-        ('cpf', 'CPF'),
-        ('nascimento', 'Data de Nascimento'),
-        ('whatsapp', 'WhatsApp'),
-        ('email', 'Email'),
-        ('cep', 'CEP'),
-        ('bairro', 'Bairro'),
-        ('local', 'Local do Curso'),
-        ('curso', 'Curso'),
-        ('turma_nome_legivel', 'Turma'),
-        ('horario', 'Horário'),
-        ('data_inicio', 'Data de Início'),
-        ('encerramento', 'Encerramento'),
-        ('endereco_curso', 'Endereço do Curso'),
-        # ('como_conheceu', 'Como Conheceu'),  // Não obrigatório
-    ]
-    campos_faltando = [label for key, label in campos_obrigatorios if not session.get(key)]
-    if campos_faltando:
-        erro_msg = f"Preencha todos os campos obrigatórios antes de finalizar a inscrição: {', '.join(campos_faltando)}."
-        return render_template_string(TEMPLATE_REVISAO, dados=session, erro_confirmacao=erro_msg)
+    protocolo = str(uuid.uuid4())[:8].upper()
+    session["protocolo"] = protocolo
 
     dados = [
         protocolo,
-        session.get('nome', ''),
-        session.get('genero', ''),
-        session.get('cpf', ''),
-        session.get('nascimento', ''),
-        session.get('whatsapp', ''),
-        session.get('email', ''),
-        session.get('cep', ''),
-        session.get('bairro', ''),
-        session.get('local', ''),
-        session.get('curso_nome_legivel', ''),
-        session.get('turma_nome_legivel', ''),
-        session.get('dias_semana', ''),
-        session.get('horario', ''),
-        session.get('data_inicio', ''),
-        session.get('encerramento', ''),
-        session.get('endereco_curso', ''),
-        session.get('como_conheceu', ''),
+        form_data["nome"],
+        form_data["genero"],
+        form_data["cpf"],
+        form_data["nascimento"],
+        form_data["whatsapp"],
+        form_data["email"],
+        form_data["cep"],
+        form_data["bairro"],
+        form_data["local"],
+        form_data["curso"],
+        form_data["turma"],
+        form_data["dias_aula"],
+        form_data["horario"],
+        form_data["data_inicio"],
+        form_data["encerramento"],
+        form_data["endereco_curso"],
+        form_data["como_conheceu"],
     ]
-    # O campo data_envio será adicionado por append_to_sheet
+
     try:
         append_to_sheet(dados)
-    except Exception as e:
-        print('Erro ao salvar na planilha:', e)
+    except Exception as exc:
+        print("Erro ao salvar na planilha:", exc)
         traceback.print_exc()
 
-    # Envia os dados para o endpoint Supabase
-    import requests
-    from datetime import datetime
     try:
-        supabase_url = "https://egpyhfzatabyftwajoad.supabase.co/functions/v1/fgm-register"
-        supabase_headers = {
-            "Content-Type": "application/json",
-            "x-api-key": "jyUskwXkc54ZcMPyADLFN6LvZO0I60e3"
-        }
-        supabase_payload = {
-            "name": session.get('nome', ''),
-            "phone": session.get('whatsapp', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', '').replace('+', ''),
-            "curso": session.get('curso_nome_legivel', session.get('curso', '')),
-            "local": session.get('local_nome_legivel', session.get('local', '')),
-            "dia_semana": session.get('dias_semana', ''),
-            "data_inicio": session.get('data_inicio', ''),
-            "data_inscricao": datetime.utcnow().isoformat(),
-            "horario": session.get('horario', '')
-        }
-        requests.post(supabase_url, headers=supabase_headers, json=supabase_payload, timeout=5)
-    except Exception as e:
-        print('Erro ao enviar para Supabase:', e)
+        response = send_registration_to_supabase(form_data)
+        print("Envio para Supabase concluido:", response.status_code)
+    except Exception as exc:
+        print("Erro ao enviar para Supabase:", exc)
 
-    return render_template_string(TEMPLATE_CONFIRMACAO, protocolo=protocolo)
+    return redirect(url_for("confirmacao"))
 
 
-if __name__ == '__main__':
+@app.route("/curso", methods=["GET", "POST"])
+@app.route("/revisao", methods=["GET", "POST"])
+@app.route("/wizard", methods=["GET"])
+def legacy_routes():
+    return redirect(url_for("home"))
+
+
+@app.route("/confirmacao", methods=["GET"])
+def confirmacao():
+    protocolo = session.get("protocolo")
+    if not protocolo:
+        return redirect(url_for("home"))
+
+    home_url = url_for("home", _external=True)
+
+    return render_template_string(
+        TEMPLATE_CONFIRMACAO,
+        meta_pixel=META_PIXEL,
+        protocolo=protocolo,
+        whatsapp_share_url=build_whatsapp_share_url(home_url),
+    )
+
+
+SUPABASE_FUNCTION_URL = os.environ.get(
+    "SUPABASE_FUNCTION_URL",
+    "https://egpyhfzatabyftwajoad.supabase.co/functions/v1/fgm-register",
+)
+SUPABASE_API_KEY = os.environ.get(
+    "SUPABASE_API_KEY",
+    "jyUskwXkc54ZcMPyADLFN6LvZO0I60e3",
+)
+
+
+def normalize_phone_number(phone):
+    digits = re.sub(r"[^\d]", "", phone or "")
+    if len(digits) == 11:
+        return f"55{digits}"
+    return digits
+
+
+def send_registration_to_supabase(form_data):
+    phone = normalize_phone_number(form_data.get("whatsapp", ""))
+    payload = {
+        "name": form_data.get("nome", ""),
+        "phone": phone,
+        "curso": form_data.get("curso", ""),
+        "local": form_data.get("local", ""),
+        "dia_semana": form_data.get("dias_aula", ""),
+        "dias_semana": form_data.get("dias_aula", ""),
+        "data_inicio": form_data.get("data_inicio", ""),
+        "data_inscricao": datetime.utcnow().isoformat() + "Z",
+        "horario": form_data.get("horario", ""),
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "x-api-key": SUPABASE_API_KEY,
+        "Authorization": f"Bearer {SUPABASE_API_KEY}",
+    }
+    response = requests.post(SUPABASE_FUNCTION_URL, headers=headers, json=payload, timeout=10)
+    if not response.ok:
+        raise RuntimeError(
+            f"Supabase retornou {response.status_code}: {response.text[:500]}"
+        )
+    return response
+
+
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

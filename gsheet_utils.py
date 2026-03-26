@@ -24,7 +24,7 @@ def get_gsheet_client():
 
 def append_to_sheet(data):
     client = get_gsheet_client()
-    sheet_id = os.environ.get("GOOGLE_SHEETS_ID", "1wCxHfbYnQvr7LKOLC8GO3ui1YBp7p9QxrxaDTrsBEiw")
+    sheet_id = os.environ.get("GOOGLE_SHEETS_ID", "1K7x9NBAnhHXxLEg7YLe2DHz25FQl-_CGLGvN6i0I6Ak")
     sheet_name = os.environ.get("GOOGLE_SHEETS_TAB", "INSCRICOES")
     sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
     # Cabeçalho correto conforme planilha (ajuste conforme sua planilha)
@@ -42,7 +42,7 @@ def append_to_sheet(data):
         'Local do Curso',
         'Curso',
         'Turma',
-        'Dias da Semana',
+        'Dias de Aula',
         'Horário',
         'Data de Início',
         'Encerramento',
