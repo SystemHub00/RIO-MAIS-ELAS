@@ -916,6 +916,19 @@ TEMPLATE_WIZARD = r'''
                 height: 32px;
                 font-size: 0.98em;
             }
+
+            .wizard-panel[data-step="escolher"] .input-with-action {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .wizard-panel[data-step="escolher"] .input-with-action .icon-button {
+                width: 100% !important;
+                align-self: stretch;
+            }
+
             .form-group textarea {
                 min-height: 60px;
                 height: auto;
