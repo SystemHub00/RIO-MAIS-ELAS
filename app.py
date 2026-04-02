@@ -35,8 +35,8 @@ COURSE_OPTIONS = [
         "turma": "DESIGNER DE SOBRANCELHAS - TURMA 01",
         "dias_aula": "Segunda, Terca e Quarta",
         "horario": "09h ate 17h",
-        "data_inicio": "13/04/2026",
-        "encerramento": "15/04/2026",
+        "data_inicio": "06/04/2026",
+        "encerramento": "08/04/2026",
         "endereco_curso": "Rua Castro Tavares, 156 - Manguinhos RJ",
     },
     {
@@ -52,7 +52,7 @@ COURSE_OPTIONS = [
     },
     {
         "id": "3",
-        "local": "COZINHA ESCOLHA CERTA - VILA VINTEM - PADRE MIGUEL",
+        "local": "COZINHA ESCOLHA CERTA, VILA VINTEM - PADRE MIGUEL",
         "curso": "EXTENSAO DE CILIOS",
         "turma": "EXTENSAO DE CILIOS - TURMA 03",
         "dias_aula": "Segunda, Terca e Quarta",
@@ -63,6 +63,17 @@ COURSE_OPTIONS = [
     },
     {
         "id": "4",
+        "local": "CENTRAL DO TRABALHADOR - ILHA DO GOVERNADOR",
+        "curso": "TRANCISTA",
+        "turma": "TRANCISTA - TURMA 04",
+        "dias_aula": "Segunda, Terca e Quarta",
+        "horario": "09h ate 17h",
+        "data_inicio": "13/04/2026",
+        "encerramento": "15/04/2026",
+        "endereco_curso": "Estrada do Dende 2080 - Ilha do Governador RJ",
+    },
+    {
+        "id": "5",
         "local": "ASSOCIACAO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA",
         "curso": "NAILS DESIGNER",
         "turma": "NAILS DESIGNER - TURMA 01",
@@ -73,7 +84,7 @@ COURSE_OPTIONS = [
         "endereco_curso": "Rua Padre Manso, 32 - Madureira RJ",
     },
     {
-        "id": "5",
+        "id": "6",
         "local": "ERNESTO LOBAO - MADUREIRA",
         "curso": "TRANCISTA",
         "turma": "TRANCISTA - TURMA 03",
