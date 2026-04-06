@@ -53,8 +53,8 @@ COURSE_OPTIONS = [
     {
         "id": "3",
         "local": "COZINHA ESCOLHA CERTA, VILA VINTEM - PADRE MIGUEL",
-        "curso": "EXTENSAO DE CILIOS",
-        "turma": "EXTENSAO DE CILIOS - TURMA 03",
+        "curso": "EXTENSÃO DE CÍLIOS",
+        "turma": "EXTENSÃO DE CÍLIOS - TURMA 03",
         "dias_aula": "Segunda, Terca e Quarta",
         "horario": "09h ate 17h",
         "data_inicio": "13/04/2026",
