@@ -41,17 +41,6 @@ COURSE_OPTIONS = [
     },
     {
         "id": "2",
-        "local": "COZINHA COSTA MATOS - REALENGO",
-        "curso": "NAILS DESIGNER",
-        "turma": "NAILS DESIGNER - TURMA 01",
-        "dias_aula": "Segunda, Terca e Quarta",
-        "horario": "09h ate 17h",
-        "data_inicio": "13/04/2026",
-        "encerramento": "15/04/2026",
-        "endereco_curso": "Rua Capitao Teixeira, 583 - Realengo RJ",
-    },
-    {
-        "id": "3",
         "local": "COZINHA ESCOLHA CERTA, VILA VINTEM - PADRE MIGUEL",
         "curso": "EXTENSÃO DE CÍLIOS",
         "turma": "EXTENSÃO DE CÍLIOS - TURMA 03",
@@ -62,7 +51,7 @@ COURSE_OPTIONS = [
         "endereco_curso": "Travessa Santa Terezinha, 03 - Padre Miguel RJ",
     },
     {
-        "id": "4",
+        "id": "3",
         "local": "CENTRAL DO TRABALHADOR - ILHA DO GOVERNADOR",
         "curso": "TRANCISTA",
         "turma": "TRANCISTA - TURMA 04",
@@ -73,7 +62,7 @@ COURSE_OPTIONS = [
         "endereco_curso": "Estrada do Dende 2080 - Ilha do Governador RJ",
     },
     {
-        "id": "5",
+        "id": "4",
         "local": "ASSOCIACAO DE MORADORES DE MADUREIRA E PROJETO ACREDITA - MADUREIRA",
         "curso": "NAILS DESIGNER",
         "turma": "NAILS DESIGNER - TURMA 01",
@@ -84,7 +73,7 @@ COURSE_OPTIONS = [
         "endereco_curso": "Rua Padre Manso, 32 - Madureira RJ",
     },
     {
-        "id": "6",
+        "id": "5",
         "local": "ERNESTO LOBAO - MADUREIRA",
         "curso": "TRANCISTA",
         "turma": "TRANCISTA - TURMA 03",
