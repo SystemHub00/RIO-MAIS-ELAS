@@ -58,8 +58,11 @@ def append_to_sheet(data):
     # Garante que os dados estejam na ordem do cabeçalho
     # Espera-se que 'data' já venha na ordem correta (igual ao header, exceto Data/Hora Envio)
     from datetime import datetime
+    import unicodedata
     now = datetime.now().strftime('%d/%m/%Y')
-    data_to_save = [now] + data
+    # Normaliza todos os campos para Unicode NFC (mantém acentos)
+    data_normalized = [unicodedata.normalize('NFC', str(item)) if item is not None else '' for item in data]
+    data_to_save = [now] + data_normalized
     # Adiciona na próxima linha disponível
     next_row = len(sheet.get_all_values()) + 1
     sheet.insert_row(data_to_save, next_row)
