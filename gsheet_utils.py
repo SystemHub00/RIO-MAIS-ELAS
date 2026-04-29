@@ -59,7 +59,7 @@ def append_to_sheet(data):
     # Espera-se que 'data' já venha na ordem correta (igual ao header, exceto Data/Hora Envio)
     from datetime import datetime
     import unicodedata
-    now = datetime.now().strftime('%d/%m/%Y')
+    now = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     # Normaliza todos os campos para Unicode NFC (mantém acentos)
     data_normalized = [unicodedata.normalize('NFC', str(item)) if item is not None else '' for item in data]
     data_to_save = [now] + data_normalized
