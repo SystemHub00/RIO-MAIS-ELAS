@@ -2282,9 +2282,34 @@ def inscricao_unica():
     if errors:
         return render_wizard(form_data=form_data, errors=errors, current_step=error_step(errors))
 
+
     protocolo = str(uuid.uuid4())[:8].upper()
     session["protocolo"] = protocolo
 
+    dados = [
+        protocolo,
+        form_data["nome"],
+        form_data["genero"],
+        form_data["cpf"],
+        form_data["nascimento"],
+        form_data["whatsapp"],
+        form_data["email"],
+        form_data["cep"],
+        form_data["bairro"],
+        form_data["local"],
+        form_data["curso"],
+        form_data["turma"],
+        form_data["dias_aula"],
+        form_data["horario"],
+        form_data["data_inicio"],
+        form_data["encerramento"],
+        form_data["endereco_curso"],
+        form_data["como_conheceu"],
+    ]
+
+    # Remover o campo de protocolo do início da lista, pois o append_to_sheet já adiciona a data automaticamente
+    # O cabeçalho espera: Data Envio, Protocolo, Nome, ...
+    # Então, envie todos os campos EXCETO a data, pois ela é preenchida no append_to_sheet
     dados = [
         protocolo,
         form_data["nome"],
